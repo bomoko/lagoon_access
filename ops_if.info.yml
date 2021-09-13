@@ -1,0 +1,8 @@
+name: OPS for IF module
+description: |
+    This module provides Origin Protection for IF sites via Fastly.
+package: Custom
+core_version_requirement: ^8 || ^9
+
+type: module
+

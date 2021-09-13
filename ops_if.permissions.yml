@@ -1,0 +1,4 @@
+access protected lagoon routes:
+  title: 'Access protected Lagoon routes'
+  description: 'Allows access to all routes protected by Lagoon/Fastly via IP'
+
