@@ -2,10 +2,8 @@
 
 namespace Drupal\ops_if\EventSubscriber;
 
-use Drupal\Core\Config\ConfigCrudEvent;
-use Drupal\Core\Config\ConfigEvents;
+use http\Env\Request;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\HttpKernel\Event\KernelEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
 use Drupal\Core\Session\AccountProxy;
@@ -25,6 +23,8 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
    * @var \Drupal\Core\Session\AccountProxy
    */
   protected $currentUser;
+
+  protected $fastlyOpsIfKey = null;
 
 
   /**
@@ -48,6 +48,28 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
     return [
       KernelEvents::RESPONSE => 'pageResponse',
     ];
+  }
+
+  /**
+   * Here we pull the API key for Fastly
+   *
+   * @return string
+   */
+  protected function getApiKey() {
+    //TODO: work out how the heck does this work
+    if(is_null($this->fastlyOpsIfKey)) {
+      $this->fastlyOpsIfKey = getenv("OPS_IF_KEY");
+      //Should this die?
+    }
+     return $this->fastlyOpsIfKey;
+  }
+
+  protected function addIpToACL() {
+    $request = \Drupal::request();
+    $currentIp = $request->getClientIp();
+
+
+
   }
 
   /**
