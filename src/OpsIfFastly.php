@@ -19,11 +19,13 @@ class OpsIfFastly {
   //This isn't a constant since we might want to override it at some point?
   protected $fastlyApiBase = "https://api.fastly.com";
 
-  protected $serviceVersions = null; //this will only be populated if needed
+  protected $serviceVersions = NULL; //this will only be populated if needed
 
   const HTTP_REQUEST_TYPE_POST = 'POST';
 
   const HTTP_REQUEST_TYPE_GET = 'GET';
+
+  const HTTP_REQUEST_TYPE_PUT = 'PUT';
 
   public function __construct($fastlyKey, $serviceId, $aclId) {
     $this->aclId = $aclId;
@@ -40,7 +42,7 @@ class OpsIfFastly {
       $this->serviceId
     );
     $serviceList = json_decode($this->doApiCall(self::HTTP_REQUEST_TYPE_GET, $endpoint));
-    if(json_last_error()) {
+    if (json_last_error()) {
       throw new Exception(sprintf("Error with json decoding: " . json_last_error_msg()));
     }
     ksort($serviceList);
@@ -55,22 +57,63 @@ class OpsIfFastly {
 
   public function getLatestActiveServiceVersion() {
     $this->getServiceVersions();
-    $la = null;
+    $la = NULL;
     foreach ($this->serviceVersions as $k => $v) {
       $latestSet = !is_null($la);
-      $vIsActive = $v->active == true;
-      if((!$latestSet && $vIsActive) || ( $latestSet && $la->number < $v->number && $vIsActive)) {
+      $vIsActive = $v->active == TRUE;
+      if ((!$latestSet && $vIsActive) || ($latestSet && $la->number < $v->number && $vIsActive)) {
         $la = $v;
       }
     }
     return $la;
   }
 
+  public function stageNewVersionOfService() {
+    $latestServiceVersion = $this->getLatestServiceVersion();
+    if (is_null($latestServiceVersion)) {
+      throw new Exception("Cannot stage a new version of the latest service, there has been no service published");
+    }
+    if ($latestServiceVersion->number != $this->getLatestActiveServiceVersion()->number) {
+      throw new Exception("It seems that the latest version of the service isn't the active version - this means either that there has been a service rollback, or that the service is being edited. Contact Fastly administrator");
+    }
+
+    //{{fastly_url}}/service/{{service_id}}/version/{{version_id}}/clone
+
+    $endpoint = sprintf("%s/service/%s/version/%s/clone",
+      $this->fastlyApiBase,
+      $this->serviceId,
+      $latestServiceVersion->number
+    );
+
+    $clonedService = json_decode($this->doApiCall(self::HTTP_REQUEST_TYPE_PUT, $endpoint));
+    if (json_last_error()) {
+      throw new Exception(sprintf("Error with json decoding: " . json_last_error_msg()));
+    }
+
+    return $clonedService->number;
+  }
 
 
-  public function getServiceVersionId() {
+  public function activateVersionOfService($versionToActive) {
+    $endpoint = sprintf("%s/service/%s/version/%s/activate",
+      $this->fastlyApiBase,
+      $this->serviceId,
+      $versionToActive
+    );
+
+    $versionActivated = json_decode($this->doApiCall(self::HTTP_REQUEST_TYPE_PUT, $endpoint));
+    if (json_last_error()) {
+      throw new Exception(sprintf("Error with json decoding: " . json_last_error_msg()));
+    }
+
+    return $versionToActive;
+  }
+
+  public function addVclSnippet($vcl, $priority) {
+
 
   }
+
 
   public function getAclList() {
     $aclList = [];
@@ -78,12 +121,12 @@ class OpsIfFastly {
     $endpoint = sprintf("%s/service/%s/version/%s/acl",
       $this->fastlyApiBase,
       $this->serviceId,
-      $this->getServiceVersionId()
+      $this->getLatestServiceVersion()->number
     );
 
-    $aclRet = json_decode($this->doApiCall(self::HTTP_REQUEST_TYPE_GET, $endpoint));
+    $aclList = json_decode($this->doApiCall(self::HTTP_REQUEST_TYPE_GET, $endpoint));
 
-    if(json_last_error()) {
+    if (json_last_error()) {
       throw new Exception(sprintf("Error with json decoding: " . json_last_error_msg()));
     }
 
@@ -125,13 +168,14 @@ class OpsIfFastly {
 
       $aclRet = json_decode($this->doApiCall(self::HTTP_REQUEST_TYPE_GET, $endpointGeg($page++)));
 
-      if(json_last_error()) {
+      if (json_last_error()) {
         throw new Exception(sprintf("Error with json decoding: " . json_last_error_msg()));
       }
 
-      if(count($aclRet) == 0) {
+      if (count($aclRet) == 0) {
         $done = TRUE;
-      } else {
+      }
+      else {
         $acls = $acls + $aclRet;
       }
     }
@@ -159,13 +203,13 @@ class OpsIfFastly {
       ],
     ];
 
-    if($type == self::HTTP_REQUEST_TYPE_POST) {
-      var_dump(json_encode($postdata,  JSON_FORCE_OBJECT));
-      $curlopts[CURLOPT_POSTFIELDS] = json_encode($postdata,  JSON_FORCE_OBJECT);
+    if ($type == self::HTTP_REQUEST_TYPE_POST) {
+      var_dump(json_encode($postdata, JSON_FORCE_OBJECT));
+      $curlopts[CURLOPT_POSTFIELDS] = json_encode($postdata, JSON_FORCE_OBJECT);
       $curlopts[CURLOPT_HTTPHEADER] = [
         'Content-Type: application/json',
         'Accept: application/json',
-        sprintf('Fastly-Key: %s', $this->fastlyKey)
+        sprintf('Fastly-Key: %s', $this->fastlyKey),
       ];
     }
 
