@@ -1,8 +1,6 @@
 <?php
 
-namespace \Drupal\ops_if;
-
-
+namespace OpsFs;
 
 /**
  * Class OpsIfFastly
@@ -14,37 +12,39 @@ class OpsIfFastly {
 
   protected $serviceId;
 
-  protected $fastlyKey;
+  //  protected $fastlyKey;
+
+  protected $opsFsCommsInstance;
 
   //This isn't a constant since we might want to override it at some point?
   protected $fastlyApiBase = "https://api.fastly.com";
 
   protected $serviceVersions = NULL; //this will only be populated if needed
 
-  const HTTP_REQUEST_TYPE_POST = 'POST';
+  protected $editingService = FALSE;
 
-  const HTTP_REQUEST_TYPE_GET = 'GET';
+  protected $editingVersion = NULL; //which version are we editing, if $this->>editingService is true?
 
-  const HTTP_REQUEST_TYPE_PUT = 'PUT';
+  public static function GetOpsIfFastlyInstance($fastlyKey, $serviceId, $aclId) {
+    return new OpsIfFastly(new OpsFsComms($fastlyKey), $serviceId, $aclId);
+  }
 
-  public function __construct($fastlyKey, $serviceId, $aclId) {
-    $this->aclId = $aclId;
-    $this->fastlyKey = $fastlyKey;
+  protected function __construct(OpsFsComms $opsFsCommsInstance, $serviceId, $aclId) {
+    $this->aclId = $aclId; //Do we use this anywhere?
+    $this->opsFsCommsInstance = $opsFsCommsInstance;
     $this->serviceId = $serviceId;
   }
 
   /**
-   * used internall to populate the version information for this service id
+   * used internally to populate the version information for this service id
    */
   public function getServiceVersions() {
     $endpoint = sprintf("%s/service/%s/version",
       $this->fastlyApiBase,
       $this->serviceId
     );
-    $serviceList = json_decode($this->doApiCall(self::HTTP_REQUEST_TYPE_GET, $endpoint));
-    if (json_last_error()) {
-      throw new Exception(sprintf("Error with json decoding: " . json_last_error_msg()));
-    }
+    $serviceList = $this->opsFsCommsInstance->doGet($endpoint);
+
     ksort($serviceList);
     $this->serviceVersions = $serviceList;
     return $this->serviceVersions;
@@ -55,7 +55,7 @@ class OpsIfFastly {
     return end($this->serviceVersions);
   }
 
-  public function getLatestActiveServiceVersion() {
+  protected function getLatestActiveServiceVersion() {
     $this->getServiceVersions();
     $la = NULL;
     foreach ($this->serviceVersions as $k => $v) {
@@ -68,30 +68,6 @@ class OpsIfFastly {
     return $la;
   }
 
-  public function stageNewVersionOfService() {
-    $latestServiceVersion = $this->getLatestServiceVersion();
-    if (is_null($latestServiceVersion)) {
-      throw new Exception("Cannot stage a new version of the latest service, there has been no service published");
-    }
-    if ($latestServiceVersion->number != $this->getLatestActiveServiceVersion()->number) {
-      throw new Exception("It seems that the latest version of the service isn't the active version - this means either that there has been a service rollback, or that the service is being edited. Contact Fastly administrator");
-    }
-
-    //{{fastly_url}}/service/{{service_id}}/version/{{version_id}}/clone
-
-    $endpoint = sprintf("%s/service/%s/version/%s/clone",
-      $this->fastlyApiBase,
-      $this->serviceId,
-      $latestServiceVersion->number
-    );
-
-    $clonedService = json_decode($this->doApiCall(self::HTTP_REQUEST_TYPE_PUT, $endpoint));
-    if (json_last_error()) {
-      throw new Exception(sprintf("Error with json decoding: " . json_last_error_msg()));
-    }
-
-    return $clonedService->number;
-  }
 
 
   public function activateVersionOfService($versionToActive) {
@@ -101,36 +77,132 @@ class OpsIfFastly {
       $versionToActive
     );
 
-    $versionActivated = json_decode($this->doApiCall(self::HTTP_REQUEST_TYPE_PUT, $endpoint));
-    if (json_last_error()) {
-      throw new Exception(sprintf("Error with json decoding: " . json_last_error_msg()));
+    $versionActivated = $this->opsFsCommsInstance->doPut($endpoint);
+
+    return $versionActivated;
+  }
+
+  public function isServiceCurrentlyBeingEdited() {
+    return $this->editingService;
+  }
+
+  public function getCurrentlyEditingService() {
+    if (!$this->isServiceCurrentlyBeingEdited()) {
+      return NULL;
+    }
+    return $this->editingVersion;
+  }
+
+  public function addAclToVersion($aclName) {
+    //we can only actually run this if we're currently editing
+    //    if (!$this->isServiceCurrentlyBeingEdited()) {
+    //      throw new Exception(sprintf("Cannot create ACL named '%s' - we are not currently editing a service", $aclName));
+    //    }
+
+    //first we check whether the ACL already exists or not
+    $aclList = $this->getAclList();
+    foreach ($aclList as $i) {
+      if ($i->name == $aclName) {
+        throw new Exception(sprintf("Cannot create ACL named '%s' - already exists", $aclName));
+      }
     }
 
-    return $versionToActive;
-  }
-
-  public function addVclSnippet($vcl, $priority) {
-
-
-  }
-
-
-  public function getAclList() {
-    $aclList = [];
-
+    //{{fastly_url}}/service/{{service_id}}/version/{{version_id}}/acl
     $endpoint = sprintf("%s/service/%s/version/%s/acl",
       $this->fastlyApiBase,
       $this->serviceId,
       $this->getLatestServiceVersion()->number
     );
 
-    $aclList = json_decode($this->doApiCall(self::HTTP_REQUEST_TYPE_GET, $endpoint));
+    $content = [
+      "name" => $aclName,
+    ];
 
-    if (json_last_error()) {
-      throw new Exception(sprintf("Error with json decoding: " . json_last_error_msg()));
+
+    return $this->opsFsCommsInstance->doPost($endpoint, $content);
+  }
+
+
+  public function deleteAcl($aclName) {
+
+    $endpoint = sprintf("%s/service/%s/version/%s/acl/%s",
+      $this->fastlyApiBase,
+      $this->serviceId,
+      $this->getLatestServiceVersion()->number,
+      $aclName
+    );
+
+    return $this->opsFsCommsInstance->doDelete($endpoint);
+  }
+
+
+  public function addVclSnippetToVersion($vclName, $vcl, $priority) {
+    //    if (!$this->isServiceCurrentlyBeingEdited()) {
+    //      throw new Exception("You cannot add VCL to a service that is not being edited");
+    //    }
+
+    //Take a look at currently registered vcl - if one with the current name exists, we bail
+    $currentVcls = $this->getVcls();
+    foreach ($currentVcls as $v) {
+      if ($v->name == $vclName) {
+        throw new Exception("There is a preexisting vcl with this name");
+      }
     }
 
-    return $aclList;
+    //{{fastly_url}}/service/{{service_id}}/version/{{version_id}}/snippet
+    $endpoint = sprintf("%s/service/%s/version/%s/snippet",
+      $this->fastlyApiBase,
+      $this->serviceId,
+      $this->getLatestServiceVersion()->number
+    );
+
+    $content = [
+      "name" => $vclName,
+      "dynamic" => 1,
+      "type" => "recv",
+      "content" => $vcl,
+      "priority" => 300,
+    ];
+
+
+    return $this->opsFsCommsInstance->doPost($endpoint, $content);
+  }
+
+  public function deleteVcl($vclName) {
+    //    {{fastly_url}}/service/{{service_id}}/version/{{version_id}}/snippet/{{snippet_name}}
+    $endpoint = sprintf("%s/service/%s/version/%s/snippet/%s",
+      $this->fastlyApiBase,
+      $this->serviceId,
+      $this->getLatestServiceVersion()->number,
+      $vclName
+    );
+
+    return $this->opsFsCommsInstance->doDelete($endpoint);
+  }
+
+  public function getVcls($serviceVersion = NULL) {
+    //    https://api.fastly.com/service/SU1Z0isxPaozGVKXdv0eY/version/1/snippet
+    $vclList = [];
+
+    $endpoint = sprintf("%s/service/%s/version/%s/snippet",
+      $this->fastlyApiBase,
+      $this->serviceId,
+      $serviceVersion ? $serviceVersion : $this->getLatestServiceVersion()->number
+    );
+
+    return $this->opsFsCommsInstance->doGet($endpoint);
+  }
+
+  public function getAclList($version = NULL) {
+    $aclList = [];
+
+    $endpoint = sprintf("%s/service/%s/version/%s/acl",
+      $this->fastlyApiBase,
+      $this->serviceId,
+      $version ? $version : $this->getLatestServiceVersion()->number
+    );
+
+    return $this->opsFsCommsInstance->doGet($endpoint);
   }
 
 
@@ -146,7 +218,7 @@ class OpsIfFastly {
 
     $payload = ["ip" => $ipaddress];
 
-    return $this->doApiCall(self::HTTP_REQUEST_TYPE_POST, $endpoint, $payload);
+    return $this->opsFsCommsInstance->doJsonPost($endpoint, $payload);
   }
 
   public function getAclMembers() {
@@ -166,12 +238,8 @@ class OpsIfFastly {
 
     while (!$done) {
 
-      $aclRet = json_decode($this->doApiCall(self::HTTP_REQUEST_TYPE_GET, $endpointGeg($page++)));
-
-      if (json_last_error()) {
-        throw new Exception(sprintf("Error with json decoding: " . json_last_error_msg()));
-      }
-
+      $aclRet = $this->opsFsCommsInstance->doGet($endpointGeg($page++));
+      
       if (count($aclRet) == 0) {
         $done = TRUE;
       }
@@ -183,44 +251,5 @@ class OpsIfFastly {
     return $acls;
 
   }
-
-  protected function doApiCall($type, $urlFragment, $postdata = []) {
-    $curl = curl_init();
-
-    $curlopts = [
-      CURLOPT_URL => $urlFragment,
-      CURLOPT_RETURNTRANSFER => TRUE,
-      CURLOPT_ENCODING => '',
-      CURLOPT_MAXREDIRS => 10,
-      CURLOPT_TIMEOUT => 0,
-      CURLOPT_FOLLOWLOCATION => TRUE,
-      CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-      CURLOPT_CUSTOMREQUEST => $type,
-      CURLOPT_HTTPHEADER => [
-        'Content-Type: application/x-www-form-urlencoded',
-        'Accept: application/json',
-        sprintf('Fastly-Key: %s', $this->fastlyKey),
-      ],
-    ];
-
-    if ($type == self::HTTP_REQUEST_TYPE_POST) {
-      var_dump(json_encode($postdata, JSON_FORCE_OBJECT));
-      $curlopts[CURLOPT_POSTFIELDS] = json_encode($postdata, JSON_FORCE_OBJECT);
-      $curlopts[CURLOPT_HTTPHEADER] = [
-        'Content-Type: application/json',
-        'Accept: application/json',
-        sprintf('Fastly-Key: %s', $this->fastlyKey),
-      ];
-    }
-
-    curl_setopt_array($curl, $curlopts);
-
-    $response = curl_exec($curl);
-
-    curl_close($curl);
-
-    return $response;
-  }
-
 
 }

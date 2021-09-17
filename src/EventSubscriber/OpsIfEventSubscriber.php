@@ -68,8 +68,6 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
     $request = \Drupal::request();
     $currentIp = $request->getClientIp();
 
-
-
   }
 
   /**
