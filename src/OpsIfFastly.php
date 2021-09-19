@@ -1,6 +1,6 @@
 <?php
 
-namespace OpsFs;
+namespace Drupal\ops_if;
 
 /**
  * Class OpsIfFastly
@@ -8,16 +8,13 @@ namespace OpsFs;
  */
 class OpsIfFastly {
 
+  const VCL_PRIORITY = 300;
+
   protected $aclId;
 
   protected $serviceId;
 
-  //  protected $fastlyKey;
-
   protected $opsFsCommsInstance;
-
-  //This isn't a constant since we might want to override it at some point?
-  protected $fastlyApiBase = "https://api.fastly.com";
 
   protected $serviceVersions = NULL; //this will only be populated if needed
 
@@ -25,11 +22,19 @@ class OpsIfFastly {
 
   protected $editingVersion = NULL; //which version are we editing, if $this->>editingService is true?
 
-  public static function GetOpsIfFastlyInstance($fastlyKey, $serviceId, $aclId) {
+  public static function GetOpsIfFastlyInstance(
+    $fastlyKey,
+    $serviceId,
+    $aclId
+  ) {
     return new OpsIfFastly(new OpsFsComms($fastlyKey), $serviceId, $aclId);
   }
 
-  protected function __construct(OpsFsComms $opsFsCommsInstance, $serviceId, $aclId) {
+  protected function __construct(
+    OpsFsComms $opsFsCommsInstance,
+    $serviceId,
+    $aclId
+  ) {
     $this->aclId = $aclId; //Do we use this anywhere?
     $this->opsFsCommsInstance = $opsFsCommsInstance;
     $this->serviceId = $serviceId;
@@ -39,8 +44,8 @@ class OpsIfFastly {
    * used internally to populate the version information for this service id
    */
   public function getServiceVersions() {
-    $endpoint = sprintf("%s/service/%s/version",
-      $this->fastlyApiBase,
+    $endpoint = sprintf(
+      "/service/%s/version",
       $this->serviceId
     );
     $serviceList = $this->opsFsCommsInstance->doGet($endpoint);
@@ -50,12 +55,16 @@ class OpsIfFastly {
     return $this->serviceVersions;
   }
 
+  public function getOpsCommInstance() {
+    return $this->opsFsCommsInstance;
+  }
+
   public function getLatestServiceVersion() {
     $this->getServiceVersions();
     return end($this->serviceVersions);
   }
 
-  protected function getLatestActiveServiceVersion() {
+  public function getLatestActiveServiceVersion() {
     $this->getServiceVersions();
     $la = NULL;
     foreach ($this->serviceVersions as $k => $v) {
@@ -68,18 +77,14 @@ class OpsIfFastly {
     return $la;
   }
 
-
-
   public function activateVersionOfService($versionToActive) {
-    $endpoint = sprintf("%s/service/%s/version/%s/activate",
-      $this->fastlyApiBase,
+    $endpoint = sprintf(
+      "/service/%s/version/%s/activate",
       $this->serviceId,
       $versionToActive
     );
 
-    $versionActivated = $this->opsFsCommsInstance->doPut($endpoint);
-
-    return $versionActivated;
+    return $this->opsFsCommsInstance->doPut($endpoint);
   }
 
   public function isServiceCurrentlyBeingEdited() {
@@ -103,13 +108,15 @@ class OpsIfFastly {
     $aclList = $this->getAclList();
     foreach ($aclList as $i) {
       if ($i->name == $aclName) {
-        throw new Exception(sprintf("Cannot create ACL named '%s' - already exists", $aclName));
+        throw new Exception(
+          sprintf("Cannot create ACL named '%s' - already exists", $aclName)
+        );
       }
     }
 
     //{{fastly_url}}/service/{{service_id}}/version/{{version_id}}/acl
-    $endpoint = sprintf("%s/service/%s/version/%s/acl",
-      $this->fastlyApiBase,
+    $endpoint = sprintf(
+      "/service/%s/version/%s/acl",
       $this->serviceId,
       $this->getLatestServiceVersion()->number
     );
@@ -124,9 +131,8 @@ class OpsIfFastly {
 
 
   public function deleteAcl($aclName) {
-
-    $endpoint = sprintf("%s/service/%s/version/%s/acl/%s",
-      $this->fastlyApiBase,
+    $endpoint = sprintf(
+      "/service/%s/version/%s/acl/%s",
       $this->serviceId,
       $this->getLatestServiceVersion()->number,
       $aclName
@@ -149,9 +155,8 @@ class OpsIfFastly {
       }
     }
 
-    //{{fastly_url}}/service/{{service_id}}/version/{{version_id}}/snippet
-    $endpoint = sprintf("%s/service/%s/version/%s/snippet",
-      $this->fastlyApiBase,
+    $endpoint = sprintf(
+      "/service/%s/version/%s/snippet",
       $this->serviceId,
       $this->getLatestServiceVersion()->number
     );
@@ -161,7 +166,7 @@ class OpsIfFastly {
       "dynamic" => 1,
       "type" => "recv",
       "content" => $vcl,
-      "priority" => 300,
+      "priority" => self::VCL_PRIORITY,
     ];
 
 
@@ -169,9 +174,8 @@ class OpsIfFastly {
   }
 
   public function deleteVcl($vclName) {
-    //    {{fastly_url}}/service/{{service_id}}/version/{{version_id}}/snippet/{{snippet_name}}
-    $endpoint = sprintf("%s/service/%s/version/%s/snippet/%s",
-      $this->fastlyApiBase,
+    $endpoint = sprintf(
+      "/service/%s/version/%s/snippet/%s",
       $this->serviceId,
       $this->getLatestServiceVersion()->number,
       $vclName
@@ -184,10 +188,11 @@ class OpsIfFastly {
     //    https://api.fastly.com/service/SU1Z0isxPaozGVKXdv0eY/version/1/snippet
     $vclList = [];
 
-    $endpoint = sprintf("%s/service/%s/version/%s/snippet",
-      $this->fastlyApiBase,
+    $endpoint = sprintf(
+      "/service/%s/version/%s/snippet",
       $this->serviceId,
-      $serviceVersion ? $serviceVersion : $this->getLatestServiceVersion()->number
+      $serviceVersion ? $serviceVersion : $this->getLatestServiceVersion(
+      )->number
     );
 
     return $this->opsFsCommsInstance->doGet($endpoint);
@@ -196,8 +201,8 @@ class OpsIfFastly {
   public function getAclList($version = NULL) {
     $aclList = [];
 
-    $endpoint = sprintf("%s/service/%s/version/%s/acl",
-      $this->fastlyApiBase,
+    $endpoint = sprintf(
+      "/service/%s/version/%s/acl",
       $this->serviceId,
       $version ? $version : $this->getLatestServiceVersion()->number
     );
@@ -210,10 +215,11 @@ class OpsIfFastly {
     //{{fastly_url}}/service/{{service_id}}/acl/{{acl_id}}/entry
     //post, {"subnet":0,"ip":"127.0.0.1"} // also needs some details about the context
 
-    $endpoint = sprintf("%s/service/%s/acl/%s/entry",
-      $this->fastlyApiBase,
+    $endpoint = sprintf(
+      "/service/%s/acl/%s/entry",
       $this->serviceId,
-      $this->aclId);
+      $this->aclId
+    );
 
 
     $payload = ["ip" => $ipaddress];
@@ -222,24 +228,23 @@ class OpsIfFastly {
   }
 
   public function getAclMembers() {
-
     $acls = [];
 
     $endpointGeg = function ($page = 1) {
-      return sprintf("%s/service/%s/acl/%s/entries?page=%s",
-        $this->fastlyApiBase,
+      return sprintf(
+        "/service/%s/acl/%s/entries?page=%s",
         $this->serviceId,
         $this->aclId,
-        $page);
+        $page
+      );
     };
 
     $done = FALSE;
     $page = 1;
 
     while (!$done) {
-
       $aclRet = $this->opsFsCommsInstance->doGet($endpointGeg($page++));
-      
+
       if (count($aclRet) == 0) {
         $done = TRUE;
       }
@@ -249,7 +254,6 @@ class OpsIfFastly {
     }
 
     return $acls;
-
   }
 
 }

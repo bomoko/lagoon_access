@@ -1,6 +1,6 @@
 <?php
 
-namespace OpsFs;
+namespace Drupal\ops_if;
 
 class OpsFsComms {
 
@@ -14,6 +14,9 @@ class OpsFsComms {
 
   const HTTP_REQUEST_TYPE_DELETE = 'DELETE';
 
+  //This isn't a constant since we might want to override it at some point?
+  protected $fastlyApiBase = "https://api.fastly.com";
+
   protected $fastlyApiKey;
 
   public function __construct($fastlyApiKey) {
@@ -21,31 +24,50 @@ class OpsFsComms {
   }
 
   public function doGet($urlFragment, $postData = []) {
-    return $this->doApiCall(self::HTTP_REQUEST_TYPE_GET, $urlFragment, $postData);
+    return $this->doApiCall(
+      self::HTTP_REQUEST_TYPE_GET,
+      $urlFragment,
+      $postData
+    );
   }
 
   public function doPost($urlFragment, $postData = []) {
-    return $this->doApiCall(self::HTTP_REQUEST_TYPE_POST, $urlFragment, $postData);
+    return $this->doApiCall(
+      self::HTTP_REQUEST_TYPE_POST,
+      $urlFragment,
+      $postData
+    );
   }
 
   public function doJsonPost($urlFragment, $postData = []) {
-    return $this->doApiCall(self::HTTP_REQUEST_TYPE_POST_JSON, $urlFragment, $postData);
+    return $this->doApiCall(
+      self::HTTP_REQUEST_TYPE_POST_JSON,
+      $urlFragment,
+      $postData
+    );
   }
 
   public function doDelete($urlFragment, $postData = []) {
-    return $this->doApiCall(self::HTTP_REQUEST_TYPE_DELETE, $urlFragment, $postData);
+    return $this->doApiCall(
+      self::HTTP_REQUEST_TYPE_DELETE,
+      $urlFragment,
+      $postData
+    );
   }
 
   public function doPut($urlFragment, $postData = []) {
-    return $this->doApiCall(self::HTTP_REQUEST_TYPE_PUT, $urlFragment, $postData);
+    return $this->doApiCall(
+      self::HTTP_REQUEST_TYPE_PUT,
+      $urlFragment,
+      $postData
+    );
   }
 
   public function doApiCall($type, $urlFragment, $postData = []) {
-
     $curl = curl_init();
 
     $curlopts = [
-      CURLOPT_URL => $urlFragment,
+      CURLOPT_URL => $this->fastlyApiBase . $urlFragment,
       CURLOPT_RETURNTRANSFER => TRUE,
       CURLOPT_ENCODING => '',
       CURLOPT_MAXREDIRS => 10,
@@ -81,7 +103,9 @@ class OpsFsComms {
 
     $responseDecoded = json_decode($response);
     if (json_last_error()) {
-      throw new Exception(sprintf("Error with json decoding: " . json_last_error_msg()));
+      throw new Exception(
+        sprintf("Error with json decoding: " . json_last_error_msg())
+      );
     }
 
     return $responseDecoded;
