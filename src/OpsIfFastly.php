@@ -6,6 +6,7 @@ namespace Drupal\ops_if;
  * Class OpsIfFastly
  *
  */
+
 class OpsIfFastly {
 
   const VCL_PRIORITY = 300;
@@ -211,30 +212,30 @@ class OpsIfFastly {
   }
 
 
-  public function addAclMember($ipaddress) {
+  public function addAclMember($ipaddress, $aclId = null) {
     //{{fastly_url}}/service/{{service_id}}/acl/{{acl_id}}/entry
     //post, {"subnet":0,"ip":"127.0.0.1"} // also needs some details about the context
 
     $endpoint = sprintf(
       "/service/%s/acl/%s/entry",
       $this->serviceId,
-      $this->aclId
+      is_null($aclId) ? $this->aclId : $aclId
     );
 
-
+    var_dump($endpoint);
     $payload = ["ip" => $ipaddress];
 
     return $this->opsFsCommsInstance->doJsonPost($endpoint, $payload);
   }
 
-  public function getAclMembers() {
+  public function getAclMembers($aclId = null) {
     $acls = [];
 
-    $endpointGeg = function ($page = 1) {
+    $endpointGeg = function ($page = 1) use ($aclId) {
       return sprintf(
         "/service/%s/acl/%s/entries?page=%s",
         $this->serviceId,
-        $this->aclId,
+        is_null($aclId) ? $this->aclId: $aclId,
         $page
       );
     };
@@ -249,8 +250,11 @@ class OpsIfFastly {
         $done = TRUE;
       }
       else {
-        $acls = $acls + $aclRet;
+        $acls = array_merge($acls, $aclRet);
       }
+
+      $done = TRUE;
+//      $done = TRUE;
     }
 
     return $acls;

@@ -7,6 +7,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
 use Drupal\Core\Session\AccountProxy;
+use Drupal\ops_if\OpsIfFastly;
 
 /**
  * Class EntityTypeSubscriber.
@@ -24,8 +25,12 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
    */
   protected $currentUser;
 
-  protected $fastlyOpsIfKey = null;
+  protected $fastlyOpsIfKey = NULL;
 
+  protected $fastlyServiceId = NULL;
+
+  /** @var OpsIfFastly */
+  protected $fastlyInterface = NULL;
 
   /**
    * Constructs a new ProtectedPagesSubscriber.
@@ -57,17 +62,64 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
    */
   protected function getApiKey() {
     //TODO: work out how the heck does this work
-    if(is_null($this->fastlyOpsIfKey)) {
-      $this->fastlyOpsIfKey = getenv("OPS_IF_KEY");
+    if (is_null($this->fastlyOpsIfKey)) {
+      $this->fastlyOpsIfKey = 'b_mfw3KLYB6GXKYlpFJhykfGCMxz90zO';//getenv("OPS_IF_KEY");
       //Should this die?
     }
-     return $this->fastlyOpsIfKey;
+    return $this->fastlyOpsIfKey;
+  }
+
+  /**
+   * Here we grab the service ID
+   */
+  protected function getFastlyServiceId() {
+    if (is_null($this->fastlyServiceId)) {
+      $this->fastlyServiceId = '2xYxtmbFJaZFClDPa1eod5';//getenv("OPS_IF_SERVICE_ID");
+    }
+    return $this->fastlyServiceId;
+  }
+
+  protected function getFastlyInterface() {
+    if (is_null($this->fastlyInterface)) {
+      $this->fastlyInterface = OpsIfFastly::GetOpsIfFastlyInstance(
+        $this->getApiKey(),
+        $this->getFastlyServiceId(),
+        "" //TODO: kill this with fire
+      );
+    }
+    return $this->fastlyInterface;
+  }
+
+  protected function getStandardAclName() {
+    return 'dynamic';
+  }
+
+  protected function getAclIdForName($name) {
+    $aclList = $this->getAclList();
+    var_dump($aclList);
+    foreach ($aclList as $item) {
+      if($item->name == $name) {
+        return $item->id;
+      }
+    }
+  }
+
+  protected function getAclList() {
+    $this->getFastlyInterface();
+    return $this->fastlyInterface->getAclList();
   }
 
   protected function addIpToACL() {
     $request = \Drupal::request();
     $currentIp = $request->getClientIp();
 
+    $aclId = $this->getAclIdForName($this->getStandardAclName());
+    //check If IP is currently in ACL
+    $aclList = $this->fastlyInterface->getAclMembers($aclId);
+
+    var_dump($aclList); die();
+
+    $resp = $this->fastlyInterface->addAclMember($currentIp, $aclId);
   }
 
   /**
@@ -78,10 +130,13 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
    */
   public function pageResponse(FilterResponseEvent $event) {
     if ($this->currentUser->hasPermission('access protected lagoon routes') &&
-      in_array(\Drupal::routeMatch()
-        ->getRouteName(), self::OPS_TRIGGER_ROUTES)) {
-
+      in_array(
+        \Drupal::routeMatch()
+          ->getRouteName(),
+        self::OPS_TRIGGER_ROUTES
+      )) {
       \Drupal::messenger()->addStatus('Here we can send up the IP ...');
+      $this->addIpToACL();
     }
     else {
       \Drupal::messenger()
