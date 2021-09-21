@@ -27,7 +27,7 @@ class OpsIfCommands extends DrushCommands {
    * @usage ops_if:clear 90
    *   Will remove any ips from Fastly older than 90 days
    */
-  public function hello($days = 90, $options = []) {
+  public function cleanAcls($days = 90, $options = []) {
     $fastlyInterface = OpsIfFastly::GetOpsIfFastlyInstance(
       OpsIfFastlyDrupalUtilities::getApiKey(),
       OpsIfFastlyDrupalUtilities::getServiceId()
@@ -48,7 +48,6 @@ class OpsIfCommands extends DrushCommands {
         );
         $diff = $createdDate->diff($now);
         if ($diff->days > $days) {
-          var_dump("Deleting address");
           $fastlyInterface->deleteAclMember($acl->id, $ip->ip);
           \Drupal::logger('ops_if')->info(
             "Aging off ip '%ip' from ACL '%acl' because it is over %days days old",
@@ -57,6 +56,43 @@ class OpsIfCommands extends DrushCommands {
         }
       }
     }
+  }
+
+  /**
+   * Attempts to register current site's ACLs
+   *
+   *   Argument provided to the drush command.
+   *
+   * @command ops_if:register
+   * @aliases oifr
+   *   Will remove any ips from Fastly older than 90 days
+   */
+  public function registerAcl() {
+    $fastlyInterface = OpsIfFastly::GetOpsIfFastlyInstance(
+      OpsIfFastlyDrupalUtilities::getApiKey(),
+      OpsIfFastlyDrupalUtilities::getServiceId()
+    );
+
+    //Let's load all ACLs in the service
+    $acls = $fastlyInterface->getAclList();
+
+    $config = \Drupal::config('ops_if.settings');
+
+    $name = $config->get('acl_name');
+
+    if(empty($name)) {
+      $this->stderr()->writeln("ACL Name not set - exiting");
+      return 1;
+    }
+
+    //check if this ACL exists already
+    foreach ($acls as $acl) {
+      if($acl->name == $name) {
+        $this->stderr()->writeln("ACL %name already exists - exiting", ["%name" => $name]);
+        return 1;
+      }
+    }
+
   }
 
 }

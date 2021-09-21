@@ -4,7 +4,6 @@ namespace Drupal\ops_if\EventSubscriber;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\ops_if\OpsIfFastlyDrupalUtilities;
-use http\Env\Request;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
