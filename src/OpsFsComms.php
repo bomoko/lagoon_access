@@ -19,10 +19,21 @@ class OpsFsComms {
 
   protected $fastlyApiKey;
 
+  /**
+   * OpsFsComms constructor.
+   *
+   * @param $fastlyApiKey
+   */
   public function __construct($fastlyApiKey) {
     $this->fastlyApiKey = $fastlyApiKey;
   }
 
+  /**
+   * @param $urlFragment
+   * @param array $postData
+   *
+   * @return mixed
+   */
   public function doGet($urlFragment, $postData = []) {
     return $this->doApiCall(
       self::HTTP_REQUEST_TYPE_GET,
@@ -31,6 +42,12 @@ class OpsFsComms {
     );
   }
 
+  /**
+   * @param $urlFragment
+   * @param array $postData
+   *
+   * @return mixed
+   */
   public function doPost($urlFragment, $postData = []) {
     return $this->doApiCall(
       self::HTTP_REQUEST_TYPE_POST,
@@ -39,6 +56,12 @@ class OpsFsComms {
     );
   }
 
+  /**
+   * @param $urlFragment
+   * @param array $postData
+   *
+   * @return mixed
+   */
   public function doJsonPost($urlFragment, $postData = []) {
     return $this->doApiCall(
       self::HTTP_REQUEST_TYPE_POST_JSON,
@@ -47,6 +70,12 @@ class OpsFsComms {
     );
   }
 
+  /**
+   * @param $urlFragment
+   * @param array $postData
+   *
+   * @return mixed
+   */
   public function doDelete($urlFragment, $postData = []) {
     return $this->doApiCall(
       self::HTTP_REQUEST_TYPE_DELETE,
@@ -55,6 +84,12 @@ class OpsFsComms {
     );
   }
 
+  /**
+   * @param $urlFragment
+   * @param array $postData
+   *
+   * @return mixed
+   */
   public function doPut($urlFragment, $postData = []) {
     return $this->doApiCall(
       self::HTTP_REQUEST_TYPE_PUT,
@@ -63,6 +98,13 @@ class OpsFsComms {
     );
   }
 
+  /**
+   * @param $type
+   * @param $urlFragment
+   * @param array $postData
+   *
+   * @return mixed
+   */
   public function doApiCall($type, $urlFragment, $postData = []) {
     $curl = curl_init();
 

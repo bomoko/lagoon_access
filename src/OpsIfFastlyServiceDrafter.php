@@ -34,12 +34,12 @@ class OpsIfFastlyServiceDrafter {
     $drafter->stageNewVersionOfService();
     var_dump($drafter->registerACLs($serviceName . '_long_lived'));
     var_dump($drafter->registerACLs($serviceName));
-//    $drafter->registerVCL(
-//      $serviceName,
-//      'sub vcl_recv {
-//    error 403 "Forbidden";
-//}'
-//    );
+    //    $drafter->registerVCL(
+    //      $serviceName,
+    //      'sub vcl_recv {
+    //    error 403 "Forbidden";
+    //}'
+    //    );
     $drafter->publishNewVersion();
   }
 

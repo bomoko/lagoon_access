@@ -1,0 +1,7 @@
+loremipsum.form:
+  path: '/admin/config/development/ops_if'
+  defaults:
+    _form: '\Drupal\ops_if\Form\OpsIfConfigForm'
+    _title: 'OPS IF Settings'
+  requirements:
+    _permission: 'administer site configuration'

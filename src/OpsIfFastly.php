@@ -6,12 +6,9 @@ namespace Drupal\ops_if;
  * Class OpsIfFastly
  *
  */
-
 class OpsIfFastly {
 
   const VCL_PRIORITY = 300;
-
-  protected $aclId;
 
   protected $serviceId;
 
@@ -23,20 +20,31 @@ class OpsIfFastly {
 
   protected $editingVersion = NULL; //which version are we editing, if $this->>editingService is true?
 
+  /**
+   * @param $fastlyKey
+   * @param $serviceId
+   *
+   * New ups an OpsIfFastly interface
+   *
+   * @return \Drupal\ops_if\OpsIfFastly
+   */
   public static function GetOpsIfFastlyInstance(
     $fastlyKey,
-    $serviceId,
-    $aclId
+    $serviceId
   ) {
-    return new OpsIfFastly(new OpsFsComms($fastlyKey), $serviceId, $aclId);
+    return new OpsIfFastly(new OpsFsComms($fastlyKey), $serviceId);
   }
 
+  /**
+   * OpsIfFastly constructor.
+   *
+   * @param \Drupal\ops_if\OpsFsComms $opsFsCommsInstance
+   * @param $serviceId
+   */
   protected function __construct(
     OpsFsComms $opsFsCommsInstance,
-    $serviceId,
-    $aclId
+    $serviceId
   ) {
-    $this->aclId = $aclId; //Do we use this anywhere?
     $this->opsFsCommsInstance = $opsFsCommsInstance;
     $this->serviceId = $serviceId;
   }
@@ -56,15 +64,24 @@ class OpsIfFastly {
     return $this->serviceVersions;
   }
 
+  /**
+   * @return \Drupal\ops_if\OpsFsComms
+   */
   public function getOpsCommInstance() {
     return $this->opsFsCommsInstance;
   }
 
+  /**
+   * @return false|mixed
+   */
   public function getLatestServiceVersion() {
     $this->getServiceVersions();
     return end($this->serviceVersions);
   }
 
+  /**
+   * @return mixed|null
+   */
   public function getLatestActiveServiceVersion() {
     $this->getServiceVersions();
     $la = NULL;
@@ -78,6 +95,11 @@ class OpsIfFastly {
     return $la;
   }
 
+  /**
+   * @param $versionToActive
+   *
+   * @return mixed
+   */
   public function activateVersionOfService($versionToActive) {
     $endpoint = sprintf(
       "/service/%s/version/%s/activate",
@@ -88,10 +110,16 @@ class OpsIfFastly {
     return $this->opsFsCommsInstance->doPut($endpoint);
   }
 
+  /**
+   * @return bool
+   */
   public function isServiceCurrentlyBeingEdited() {
     return $this->editingService;
   }
 
+  /**
+   * @return null
+   */
   public function getCurrentlyEditingService() {
     if (!$this->isServiceCurrentlyBeingEdited()) {
       return NULL;
@@ -99,11 +127,21 @@ class OpsIfFastly {
     return $this->editingVersion;
   }
 
+  /**
+   * @param $aclName
+   *
+   * @return mixed
+   */
   public function addAclToVersion($aclName) {
-    //we can only actually run this if we're currently editing
-    //    if (!$this->isServiceCurrentlyBeingEdited()) {
-    //      throw new Exception(sprintf("Cannot create ACL named '%s' - we are not currently editing a service", $aclName));
-    //    }
+    //    we can only actually run this if we're currently editing
+    if (!$this->isServiceCurrentlyBeingEdited()) {
+      throw new Exception(
+        sprintf(
+          "Cannot create ACL named '%s' - we are not currently editing a service",
+          $aclName
+        )
+      );
+    }
 
     //first we check whether the ACL already exists or not
     $aclList = $this->getAclList();
@@ -115,7 +153,6 @@ class OpsIfFastly {
       }
     }
 
-    //{{fastly_url}}/service/{{service_id}}/version/{{version_id}}/acl
     $endpoint = sprintf(
       "/service/%s/version/%s/acl",
       $this->serviceId,
@@ -126,11 +163,15 @@ class OpsIfFastly {
       "name" => $aclName,
     ];
 
-
     return $this->opsFsCommsInstance->doPost($endpoint, $content);
   }
 
 
+  /**
+   * @param $aclName
+   *
+   * @return mixed
+   */
   public function deleteAcl($aclName) {
     $endpoint = sprintf(
       "/service/%s/version/%s/acl/%s",
@@ -143,10 +184,19 @@ class OpsIfFastly {
   }
 
 
+  /**
+   * @param $vclName
+   * @param $vcl
+   * @param $priority
+   *
+   * @return mixed
+   */
   public function addVclSnippetToVersion($vclName, $vcl, $priority) {
-    //    if (!$this->isServiceCurrentlyBeingEdited()) {
-    //      throw new Exception("You cannot add VCL to a service that is not being edited");
-    //    }
+    if (!$this->isServiceCurrentlyBeingEdited()) {
+      throw new Exception(
+        "You cannot add VCL to a service that is not being edited"
+      );
+    }
 
     //Take a look at currently registered vcl - if one with the current name exists, we bail
     $currentVcls = $this->getVcls();
@@ -174,6 +224,11 @@ class OpsIfFastly {
     return $this->opsFsCommsInstance->doPost($endpoint, $content);
   }
 
+  /**
+   * @param $vclName
+   *
+   * @return mixed
+   */
   public function deleteVcl($vclName) {
     $endpoint = sprintf(
       "/service/%s/version/%s/snippet/%s",
@@ -185,8 +240,12 @@ class OpsIfFastly {
     return $this->opsFsCommsInstance->doDelete($endpoint);
   }
 
+  /**
+   * @param null $serviceVersion
+   *
+   * @return mixed
+   */
   public function getVcls($serviceVersion = NULL) {
-    //    https://api.fastly.com/service/SU1Z0isxPaozGVKXdv0eY/version/1/snippet
     $vclList = [];
 
     $endpoint = sprintf(
@@ -199,6 +258,11 @@ class OpsIfFastly {
     return $this->opsFsCommsInstance->doGet($endpoint);
   }
 
+  /**
+   * @param null $version
+   *
+   * @return mixed
+   */
   public function getAclList($version = NULL) {
     $aclList = [];
 
@@ -212,14 +276,17 @@ class OpsIfFastly {
   }
 
 
-  public function addAclMember($ipaddress, $aclId = null) {
-    //{{fastly_url}}/service/{{service_id}}/acl/{{acl_id}}/entry
-    //post, {"subnet":0,"ip":"127.0.0.1"} // also needs some details about the context
-
+  /**
+   * @param $ipaddress
+   * @param $aclId
+   *
+   * @return mixed
+   */
+  public function addAclMember($ipaddress, $aclId) {
     $endpoint = sprintf(
       "/service/%s/acl/%s/entry",
       $this->serviceId,
-      is_null($aclId) ? $this->aclId : $aclId
+      $aclId
     );
 
     var_dump($endpoint);
@@ -228,14 +295,19 @@ class OpsIfFastly {
     return $this->opsFsCommsInstance->doJsonPost($endpoint, $payload);
   }
 
-  public function getAclMembers($aclId = null) {
+  /**
+   * @param $aclId
+   *
+   * @return array
+   */
+  public function getAclMembers($aclId) {
     $acls = [];
 
     $endpointGeg = function ($page = 1) use ($aclId) {
       return sprintf(
         "/service/%s/acl/%s/entries?page=%s",
         $this->serviceId,
-        is_null($aclId) ? $this->aclId: $aclId,
+        $aclId,
         $page
       );
     };
@@ -254,7 +326,6 @@ class OpsIfFastly {
       }
 
       $done = TRUE;
-//      $done = TRUE;
     }
 
     return $acls;

@@ -2,6 +2,7 @@
 
 namespace Drupal\ops_if\EventSubscriber;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use http\Env\Request;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -25,21 +26,29 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
    */
   protected $currentUser;
 
+  /** @var string */
   protected $fastlyOpsIfKey = NULL;
 
+  /** @var string */
   protected $fastlyServiceId = NULL;
 
   /** @var OpsIfFastly */
   protected $fastlyInterface = NULL;
 
+  /** @var ConfigFactoryInterface */
+  protected $config;
+
   /**
    * Constructs a new ProtectedPagesSubscriber.
    *
+   * @param \Drupal
    * @param \Drupal\Core\Session\AccountProxy $currentUser
    *   The account proxy service.
    */
-  public function __construct(AccountProxy $currentUser) {
+  public function __construct(ConfigFactoryInterface $configFactory, AccountProxy $currentUser) {
     $this->currentUser = $currentUser;
+    $this->config = $configFactory;
+
   }
 
 
@@ -63,7 +72,7 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
   protected function getApiKey() {
     //TODO: work out how the heck does this work
     if (is_null($this->fastlyOpsIfKey)) {
-      $this->fastlyOpsIfKey = 'b_mfw3KLYB6GXKYlpFJhykfGCMxz90zO';//getenv("OPS_IF_KEY");
+      $this->fastlyOpsIfKey = getenv("OPS_IF_KEY");
       //Should this die?
     }
     return $this->fastlyOpsIfKey;
@@ -74,7 +83,7 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
    */
   protected function getFastlyServiceId() {
     if (is_null($this->fastlyServiceId)) {
-      $this->fastlyServiceId = '2xYxtmbFJaZFClDPa1eod5';//getenv("OPS_IF_SERVICE_ID");
+      $this->fastlyServiceId = getenv("OPS_IF_SERVICE_ID");
     }
     return $this->fastlyServiceId;
   }
@@ -83,20 +92,22 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
     if (is_null($this->fastlyInterface)) {
       $this->fastlyInterface = OpsIfFastly::GetOpsIfFastlyInstance(
         $this->getApiKey(),
-        $this->getFastlyServiceId(),
-        "" //TODO: kill this with fire
+        $this->getFastlyServiceId()
       );
     }
     return $this->fastlyInterface;
   }
 
   protected function getStandardAclName() {
-    return 'dynamic';
+    return $this->config->get('ops_if.settings')->get('acl_name');;
+  }
+
+  protected function getLongLivedAclName() {
+    return $this->getStandardAclName() . '_longlived';
   }
 
   protected function getAclIdForName($name) {
     $aclList = $this->getAclList();
-    var_dump($aclList);
     foreach ($aclList as $item) {
       if($item->name == $name) {
         return $item->id;
@@ -106,7 +117,10 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
 
   protected function getAclList() {
     $this->getFastlyInterface();
-    return $this->fastlyInterface->getAclList();
+    if(!isset($this->cache['aclList'])) {
+      $this->cache['aclList'] = $this->fastlyInterface->getAclList();
+    }
+    return $this->cache['aclList'];
   }
 
   protected function addIpToACL() {
@@ -114,12 +128,17 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
     $currentIp = $request->getClientIp();
 
     $aclId = $this->getAclIdForName($this->getStandardAclName());
+
     //check If IP is currently in ACL
     $aclList = $this->fastlyInterface->getAclMembers($aclId);
+    foreach ($aclList as $item) {
+      if($item->ip == $currentIp) {
+        return; //we've already got the ip address
+      }
+    }
 
-    var_dump($aclList); die();
-
-    $resp = $this->fastlyInterface->addAclMember($currentIp, $aclId);
+    // We never add to the Long Lived ACL
+    $this->fastlyInterface->addAclMember($currentIp, $aclId);
   }
 
   /**
@@ -137,10 +156,6 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
       )) {
       \Drupal::messenger()->addStatus('Here we can send up the IP ...');
       $this->addIpToACL();
-    }
-    else {
-      \Drupal::messenger()
-        ->addStatus('User has not the permission or route is wrong');
     }
   }
 
