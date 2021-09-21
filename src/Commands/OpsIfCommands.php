@@ -49,6 +49,7 @@ class OpsIfCommands extends DrushCommands {
         $diff = $createdDate->diff($now);
         if ($diff->days > $days) {
           var_dump("Deleting address");
+          $fastlyInterface->deleteAclMember($acl->id, $ip->ip);
           \Drupal::logger('ops_if')->info(
             "Aging off ip '%ip' from ACL '%acl' because it is over %days days old",
             ['%ip' => $ip->ip, '%days' => $days, '%acl' => $acl->name]

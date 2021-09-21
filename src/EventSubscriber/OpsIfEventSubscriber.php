@@ -70,7 +70,6 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
    * @return string
    */
   protected function getApiKey() {
-    //TODO: work out how the heck does this work
     if (is_null($this->fastlyOpsIfKey)) {
       $this->fastlyOpsIfKey = OpsIfFastlyDrupalUtilities::getApiKey();
     }
@@ -136,8 +135,13 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
       }
     }
 
+    $extraData = [
+      'user' => $this->currentUser->getAccountName(),
+      'site' => \Drupal::config('system.site')->get('name'),
+    ];
+
     // We never add to the Long Lived ACL
-    $this->fastlyInterface->addAclMember($currentIp, $aclId);
+    $this->fastlyInterface->addAclMember($aclId, $currentIp, $extraData);
   }
 
   /**
@@ -153,8 +157,11 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
           ->getRouteName(),
         self::OPS_TRIGGER_ROUTES
       )) {
-      \Drupal::messenger()->addStatus('Here we can send up the IP ...');
-      $this->addIpToACL();
+      try {
+        $this->addIpToACL();
+      } catch (\Exception $exception) {
+        \Drupal::logger('ops_if')->error($exception->getMessage());
+      }
     }
   }
 

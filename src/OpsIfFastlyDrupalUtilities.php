@@ -15,6 +15,13 @@ class OpsIfFastlyDrupalUtilities {
    * @return array|false|string
    */
   public static function getApiKey() {
-    return getenv("OPS_IF_KEY");
+    $opsPassphrase = \Drupal::config('ops_if.settings')->get('passphrase');
+
+    $ifKeyEncrypted = getenv("OPS_IF_KEY");
+
+    if(empty($opsPassphrase) || empty($ifKeyEncrypted)) {
+      throw new \Exception("OPS_IF_KEY or Module passphrase not set");
+    }
+    return openssl_decrypt($ifKeyEncrypted, 'aes-256-ctr' , $opsPassphrase);
   }
 }

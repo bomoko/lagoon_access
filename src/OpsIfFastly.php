@@ -282,14 +282,14 @@ class OpsIfFastly {
    *
    * @return mixed
    */
-  public function addAclMember($ipaddress, $aclId) {
+  public function addAclMember($aclId, $ipaddress, $entryData = []) {
     $endpoint = sprintf(
       "/service/%s/acl/%s/entry",
       $this->serviceId,
       $aclId
     );
 
-    $payload = ["ip" => $ipaddress];
+    $payload = ["ip" => $ipaddress, "comment" => json_encode($entryData)];
 
     return $this->opsFsCommsInstance->doJsonPost($endpoint, $payload);
   }
@@ -300,7 +300,7 @@ class OpsIfFastly {
    *
    * @return mixed
    */
-  public function deleteAclMember($aclEntryId, $aclId) {
+  public function deleteAclMember($aclId, $aclEntryId) {
     $endpoint = sprintf(
       "/service/%s/acl/%s/entry/%s",
       $this->serviceId,

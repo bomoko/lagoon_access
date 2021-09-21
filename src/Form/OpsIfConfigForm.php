@@ -31,6 +31,14 @@ class OpsIfConfigForm extends ConfigFormBase {
       '#description' => $this->t('This will determine the ACL names used on Fastly'),
     ];
 
+    // Page title field.
+    $form['passphrase'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Api Pass phrase:'),
+      '#default_value' => $config->get('passphrase'),
+      '#description' => $this->t('This is the pass phrase used to decrypt the fastly API key'),
+    ];
+
     return $form;
   }
 
@@ -47,7 +55,7 @@ class OpsIfConfigForm extends ConfigFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $config = $this->config('ops_if.settings');
     $config->set('acl_name', $form_state->getValue('acl_name'));
-
+    $config->set('passphrase', $form_state->getValue('passphrase'));
     $config->save();
     return parent::submitForm($form, $form_state);
   }

@@ -145,7 +145,7 @@ class OpsFsComms {
 
     $responseDecoded = json_decode($response);
     if (json_last_error()) {
-      throw new Exception(
+      throw new \Exception(
         sprintf("Error with json decoding: " . json_last_error_msg())
       );
     }
