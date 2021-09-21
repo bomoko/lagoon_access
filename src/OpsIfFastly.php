@@ -289,11 +289,31 @@ class OpsIfFastly {
       $aclId
     );
 
-    var_dump($endpoint);
     $payload = ["ip" => $ipaddress];
 
     return $this->opsFsCommsInstance->doJsonPost($endpoint, $payload);
   }
+
+  /**
+   * @param $ipaddress
+   * @param $aclId
+   *
+   * @return mixed
+   */
+  public function deleteAclMember($aclEntryId, $aclId) {
+    $endpoint = sprintf(
+      "/service/%s/acl/%s/entry/%s",
+      $this->serviceId,
+      $aclId,
+      $aclEntryId
+    );
+
+    return $this->opsFsCommsInstance->doDelete($endpoint);
+  }
+
+
+
+
 
   /**
    * @param $aclId

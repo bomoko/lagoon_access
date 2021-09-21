@@ -3,6 +3,7 @@
 namespace Drupal\ops_if\EventSubscriber;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\ops_if\OpsIfFastlyDrupalUtilities;
 use http\Env\Request;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -48,7 +49,6 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
   public function __construct(ConfigFactoryInterface $configFactory, AccountProxy $currentUser) {
     $this->currentUser = $currentUser;
     $this->config = $configFactory;
-
   }
 
 
@@ -72,8 +72,7 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
   protected function getApiKey() {
     //TODO: work out how the heck does this work
     if (is_null($this->fastlyOpsIfKey)) {
-      $this->fastlyOpsIfKey = getenv("OPS_IF_KEY");
-      //Should this die?
+      $this->fastlyOpsIfKey = OpsIfFastlyDrupalUtilities::getApiKey();
     }
     return $this->fastlyOpsIfKey;
   }
@@ -83,7 +82,7 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
    */
   protected function getFastlyServiceId() {
     if (is_null($this->fastlyServiceId)) {
-      $this->fastlyServiceId = getenv("OPS_IF_SERVICE_ID");
+      $this->fastlyServiceId = OpsIfFastlyDrupalUtilities::getServiceId();
     }
     return $this->fastlyServiceId;
   }

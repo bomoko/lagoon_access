@@ -4,3 +4,7 @@ services:
     arguments: ['@config.factory', '@current_user']
     tags:
       - {name: event_subscriber}
+  ops_if.commands:
+    class: Drupal\ops_if\Commands\OpsIfCommands
+    tags:
+      - { name: drush.command }
