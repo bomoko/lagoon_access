@@ -32,7 +32,7 @@ class OpsIfFastlyServiceDrafter {
   ) {
     $drafter = new OpsIfFastlyServiceDrafter($fastly, $serviceName);
     $drafter->stageNewVersionOfService();
-    var_dump($drafter->registerACLs($serviceName . '_long_lived'));
+//    var_dump($drafter->registerACLs($serviceName . '_long_lived'));
     var_dump($drafter->registerACLs($serviceName));
     //    $drafter->registerVCL(
     //      $serviceName,

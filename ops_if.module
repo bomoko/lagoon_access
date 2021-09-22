@@ -1,0 +1,24 @@
+<?php
+
+function ops_if_requirements($phase) {
+  $requirements = [];
+  if ($phase === 'runtime') {
+    $config = \Drupal::config('ops_if.settings');
+    if (empty($config->get('acl_name')) || empty($config->get('passphrase'))) {
+
+      $url = \Drupal\Core\Url::fromRoute('ops_if.config_form');
+      $link = \Drupal\Core\Link::fromTextAndUrl("OPS IF admin page", $url);
+
+      $requirements['ops_if'] = [
+        'title' => t('OPS IF'),
+        'value' => t('Setup Required'),
+        'severity' => REQUIREMENT_ERROR,
+        'description' => t(
+          'OPSIF has not been set up correctly - visit ' . $link->toString() . ' to configure'
+        ),
+      ];
+    }
+  }
+
+  return $requirements;
+}

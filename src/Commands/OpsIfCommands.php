@@ -5,6 +5,7 @@ namespace Drupal\ops_if\Commands;
 use Drupal\jsonapi\JsonApiResource\Data;
 use Drupal\ops_if\OpsIfFastly;
 use Drupal\ops_if\OpsIfFastlyDrupalUtilities;
+use Drupal\ops_if\OpsIfFastlyServiceDrafter;
 use Drush\Commands\DrushCommands;
 
 /**
@@ -48,7 +49,7 @@ class OpsIfCommands extends DrushCommands {
         );
         $diff = $createdDate->diff($now);
         if ($diff->days > $days) {
-          $fastlyInterface->deleteAclMember($acl->id, $ip->ip);
+          $fastlyInterface->deleteAclMember($acl->id, $ip->id);
           \Drupal::logger('ops_if')->info(
             "Aging off ip '%ip' from ACL '%acl' because it is over %days days old",
             ['%ip' => $ip->ip, '%days' => $days, '%acl' => $acl->name]
@@ -93,7 +94,47 @@ class OpsIfCommands extends DrushCommands {
       }
     }
 
+    //let's register the ACL
+    OpsIfFastlyServiceDrafter::doStandardACLRegistration($fastlyInterface, $name);
+
   }
+
+//  /**
+//   * Attempts to register current site's ACLs
+//   *
+//   *   Argument provided to the drush command.
+//   *
+//   * @command ops_if:generate_key
+//   * @aliases oifkeygen
+//   *   Will remove any ips from Fastly older than 90 days
+//   */
+//  public function generateEncryptedKey() {
+//    $fastlyInterface = OpsIfFastly::GetOpsIfFastlyInstance(
+//      OpsIfFastlyDrupalUtilities::getApiKey(),
+//      OpsIfFastlyDrupalUtilities::getServiceId()
+//    );
+//
+//    //Let's load all ACLs in the service
+//    $acls = $fastlyInterface->getAclList();
+//
+//    $config = \Drupal::config('ops_if.settings');
+//
+//    $name = $config->get('acl_name');
+//
+//    if(empty($name)) {
+//      $this->stderr()->writeln("ACL Name not set - exiting");
+//      return 1;
+//    }
+//
+//    //check if this ACL exists already
+//    foreach ($acls as $acl) {
+//      if($acl->name == $name) {
+//        $this->stderr()->writeln("ACL %name already exists - exiting", ["%name" => $name]);
+//        return 1;
+//      }
+//    }
+//  }
+
 
 }
 

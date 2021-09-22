@@ -135,7 +135,7 @@ class OpsIfFastly {
   public function addAclToVersion($aclName) {
     //    we can only actually run this if we're currently editing
     if (!$this->isServiceCurrentlyBeingEdited()) {
-      throw new Exception(
+      throw new \Exception(
         sprintf(
           "Cannot create ACL named '%s' - we are not currently editing a service",
           $aclName
@@ -147,7 +147,7 @@ class OpsIfFastly {
     $aclList = $this->getAclList();
     foreach ($aclList as $i) {
       if ($i->name == $aclName) {
-        throw new Exception(
+        throw new \Exception(
           sprintf("Cannot create ACL named '%s' - already exists", $aclName)
         );
       }
@@ -193,7 +193,7 @@ class OpsIfFastly {
    */
   public function addVclSnippetToVersion($vclName, $vcl, $priority) {
     if (!$this->isServiceCurrentlyBeingEdited()) {
-      throw new Exception(
+      throw new \Exception(
         "You cannot add VCL to a service that is not being edited"
       );
     }
@@ -202,7 +202,7 @@ class OpsIfFastly {
     $currentVcls = $this->getVcls();
     foreach ($currentVcls as $v) {
       if ($v->name == $vclName) {
-        throw new Exception("There is a preexisting vcl with this name");
+        throw new \Exception("There is a preexisting vcl with this name");
       }
     }
 

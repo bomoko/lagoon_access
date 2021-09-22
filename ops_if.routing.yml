@@ -1,4 +1,4 @@
-loremipsum.form:
+ops_if.config_form:
   path: '/admin/config/development/ops_if'
   defaults:
     _form: '\Drupal\ops_if\Form\OpsIfConfigForm'
