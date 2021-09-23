@@ -1,0 +1,6 @@
+services:
+  user_logged_in_subscriber:
+    class: Drupal\fastly_streamline_access\EventSubscriber\FsaEventSubscriber
+    arguments: ['@config.factory', '@current_user']
+    tags:
+      - {name: event_subscriber}

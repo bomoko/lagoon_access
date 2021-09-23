@@ -1,0 +1,7 @@
+fastly_streamline_access.config_form:
+  path: '/admin/config/development/fastly_streamline_access'
+  defaults:
+    _form: '\Drupal\fastly_streamline_access\Form\FsaConfigForm'
+    _title: 'OPS IF Settings'
+  requirements:
+    _permission: 'administer site configuration'

@@ -1,8 +1,8 @@
 <?php
 
-namespace Drupal\ops_if;
+namespace Drupal\fastly_streamline_access;
 
-class OpsFsComms {
+class FsaComms {
 
   const HTTP_REQUEST_TYPE_POST = 'POST';
 
@@ -20,7 +20,7 @@ class OpsFsComms {
   protected $fastlyApiKey;
 
   /**
-   * OpsFsComms constructor.
+   * FsaComms constructor.
    *
    * @param $fastlyApiKey
    */
@@ -116,7 +116,7 @@ class OpsFsComms {
       CURLOPT_TIMEOUT => 0,
       CURLOPT_FOLLOWLOCATION => TRUE,
       CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-      CURLOPT_CUSTOMREQUEST => $type == OpsFsComms::HTTP_REQUEST_TYPE_POST_JSON ? 'POST' : $type,
+      CURLOPT_CUSTOMREQUEST => $type == FsaComms::HTTP_REQUEST_TYPE_POST_JSON ? 'POST' : $type,
       CURLOPT_HTTPHEADER => [
         'Content-Type: application/x-www-form-urlencoded',
         'Accept: application/json',
@@ -124,12 +124,12 @@ class OpsFsComms {
       ],
     ];
 
-    if ($type == OpsFsComms::HTTP_REQUEST_TYPE_POST) {
+    if ($type == FsaComms::HTTP_REQUEST_TYPE_POST) {
       $curlopts[CURLOPT_POST] = 1;
       $curlopts[CURLOPT_POSTFIELDS] = http_build_query($postData);
     }
 
-    if ($type == OpsFsComms::HTTP_REQUEST_TYPE_POST_JSON) {
+    if ($type == FsaComms::HTTP_REQUEST_TYPE_POST_JSON) {
       $curlopts[CURLOPT_POSTFIELDS] = json_encode($postData, JSON_FORCE_OBJECT);
       $curlopts[CURLOPT_HTTPHEADER] = [
         'Content-Type: application/json',

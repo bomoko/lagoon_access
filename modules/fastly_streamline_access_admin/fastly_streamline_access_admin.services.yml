@@ -1,0 +1,5 @@
+services:
+  fastly_streamline_access_admin.commands:
+    class: Drupal\fastly_streamline_access_admin\Commands\FsaAdminCommands
+    tags:
+      - { name: drush.command }

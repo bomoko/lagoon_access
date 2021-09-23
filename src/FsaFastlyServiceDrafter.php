@@ -1,24 +1,24 @@
 <?php
 
 
-namespace Drupal\ops_if;
+namespace Drupal\fastly_streamline_access;
 
 use \Exception;
 
 
 /**
- * Class OpsIfFastlyServiceDrafter
+ * Class FsaFastlyServiceDrafter
  * This class is the primary wrapper for dealing with Drafting new services
  * Specifically, it should be used for setting up and tearing down OPS instances
  *
  * Essentially it provides guide rails for setup and teardown of the objects
  * required by OPS
  *
- * @package OpsFs
+ * @package Fsa
  */
-class OpsIfFastlyServiceDrafter {
+class FsaFastlyServiceDrafter {
 
-  protected $OpsIfFastly;
+  protected $FsaFastly;
 
   protected $editingService;
 
@@ -27,10 +27,10 @@ class OpsIfFastlyServiceDrafter {
   private $editingVersionDetails;
 
   public static function doStandardACLRegistration(
-    OpsIfFastly $fastly,
+    FsaFastly $fastly,
     $serviceName
   ) {
-    $drafter = new OpsIfFastlyServiceDrafter($fastly, $serviceName);
+    $drafter = new FsaFastlyServiceDrafter($fastly, $serviceName);
     $drafter->stageNewVersionOfService();
 //    var_dump($drafter->registerACLs($serviceName . '_long_lived'));
     var_dump($drafter->registerACLs($serviceName));
@@ -43,8 +43,8 @@ class OpsIfFastlyServiceDrafter {
     $drafter->publishNewVersion();
   }
 
-  public function __construct(OpsIfFastly $fastly, $serviceName) {
-    $this->OpsIfFastly = $fastly;
+  public function __construct(FsaFastly $fastly, $serviceName) {
+    $this->FsaFastly = $fastly;
     $this->serviceName = $serviceName;
   }
 
@@ -56,13 +56,13 @@ class OpsIfFastlyServiceDrafter {
       );
     }
 
-    $latestServiceVersion = $this->OpsIfFastly->getLatestServiceVersion();
+    $latestServiceVersion = $this->FsaFastly->getLatestServiceVersion();
     if (is_null($latestServiceVersion)) {
       throw new Exception(
         "Cannot stage a new version of the latest service, there has been no service published"
       );
     }
-    if ($latestServiceVersion->number != $this->OpsIfFastly->getLatestActiveServiceVersion(
+    if ($latestServiceVersion->number != $this->FsaFastly->getLatestActiveServiceVersion(
       )->number) {
       throw new Exception(
         "It seems that the latest version of the service isn't the active version - this means either that there has been a service rollback, or that the service is being edited. Contact Fastly administrator"
@@ -76,7 +76,7 @@ class OpsIfFastlyServiceDrafter {
       $latestServiceVersion->number
     );
 
-    $clonedService = $this->OpsIfFastly->getOpsCommInstance()->doPut($endpoint);
+    $clonedService = $this->FsaFastly->getOpsCommInstance()->doPut($endpoint);
 
     $this->editingVersionDetails = $clonedService;
     $this->editingService = TRUE;
@@ -85,15 +85,15 @@ class OpsIfFastlyServiceDrafter {
   }
 
   public function registerVCL($name, $vcl) {
-    return $this->OpsIfFastly->addVclSnippetToVersion(
+    return $this->FsaFastly->addVclSnippetToVersion(
       $name,
       $vcl,
-      OpsIfFastly::VCL_PRIORITY
+      FsaFastly::VCL_PRIORITY
     );
   }
 
   public function registerACLs($name) {
-    return $this->OpsIfFastly->addAclToVersion($name);
+    return $this->FsaFastly->addAclToVersion($name);
   }
 
 
@@ -103,7 +103,7 @@ class OpsIfFastlyServiceDrafter {
       $this->editingVersionDetails->service_id,
       $this->editingVersionDetails->number
     );
-    $this->OpsIfFastly->getOpsCommInstance()->doPut($endpoint);
+    $this->FsaFastly->getOpsCommInstance()->doPut($endpoint);
   }
 
 

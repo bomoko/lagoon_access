@@ -1,11 +1,11 @@
 <?php
 
-namespace Drupal\ops_if\Form;
+namespace Drupal\fastly_streamline_access\Form;
 
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 
-class OpsIfConfigForm extends ConfigFormBase {
+class FsaConfigForm extends ConfigFormBase {
 
   /**
    * {@inheritdoc}
@@ -21,7 +21,7 @@ class OpsIfConfigForm extends ConfigFormBase {
     // Form constructor.
     $form = parent::buildForm($form, $form_state);
     // Default settings.
-    $config = $this->config('ops_if.settings');
+    $config = $this->config('fastly_streamline_access.settings');
 
     // Page title field.
     $form['acl_name'] = [
@@ -53,7 +53,7 @@ class OpsIfConfigForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $config = $this->config('ops_if.settings');
+    $config = $this->config('fastly_streamline_access.settings');
     $config->set('acl_name', $form_state->getValue('acl_name'));
     $config->set('passphrase', $form_state->getValue('passphrase'));
     $config->save();
@@ -62,7 +62,7 @@ class OpsIfConfigForm extends ConfigFormBase {
 
 
   protected function getEditableConfigNames() {
-    return ['ops_if.settings'];
+    return ['fastly_streamline_access.settings'];
   }
 
 }

@@ -1,21 +1,21 @@
 <?php
 
-namespace Drupal\ops_if\EventSubscriber;
+namespace Drupal\fastly_streamline_access\EventSubscriber;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\ops_if\OpsIfFastlyDrupalUtilities;
+use Drupal\fastly_streamline_access\FsaFastlyDrupalUtilities;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
 use Drupal\Core\Session\AccountProxy;
-use Drupal\ops_if\OpsIfFastly;
+use Drupal\fastly_streamline_access\FsaFastly;
 
 /**
  * Class EntityTypeSubscriber.
  *
- * @package Drupal\ops_if\EventSubscriber
+ * @package Drupal\fastly_streamline_access\EventSubscriber
  */
-class OpsIfEventSubscriber implements EventSubscriberInterface {
+class FsaEventSubscriber implements EventSubscriberInterface {
 
   const OPS_TRIGGER_ROUTES = ['user.page', 'user.login'];
 
@@ -27,12 +27,12 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
   protected $currentUser;
 
   /** @var string */
-  protected $fastlyOpsIfKey = NULL;
+  protected $fastlyFsaKey = NULL;
 
   /** @var string */
   protected $fastlyServiceId = NULL;
 
-  /** @var OpsIfFastly */
+  /** @var FsaFastly */
   protected $fastlyInterface = NULL;
 
   /** @var ConfigFactoryInterface */
@@ -69,10 +69,10 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
    * @return string
    */
   protected function getApiKey() {
-    if (is_null($this->fastlyOpsIfKey)) {
-      $this->fastlyOpsIfKey = OpsIfFastlyDrupalUtilities::getApiKey();
+    if (is_null($this->fastlyFsaKey)) {
+      $this->fastlyFsaKey = FsaFastlyDrupalUtilities::getApiKey();
     }
-    return $this->fastlyOpsIfKey;
+    return $this->fastlyFsaKey;
   }
 
   /**
@@ -80,14 +80,14 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
    */
   protected function getFastlyServiceId() {
     if (is_null($this->fastlyServiceId)) {
-      $this->fastlyServiceId = OpsIfFastlyDrupalUtilities::getServiceId();
+      $this->fastlyServiceId = FsaFastlyDrupalUtilities::getServiceId();
     }
     return $this->fastlyServiceId;
   }
 
   protected function getFastlyInterface() {
     if (is_null($this->fastlyInterface)) {
-      $this->fastlyInterface = OpsIfFastly::GetOpsIfFastlyInstance(
+      $this->fastlyInterface = FsaFastly::GetFsaFastlyInstance(
         $this->getApiKey(),
         $this->getFastlyServiceId()
       );
@@ -96,7 +96,7 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
   }
 
   protected function getStandardAclName() {
-    return $this->config->get('ops_if.settings')->get('acl_name');;
+    return $this->config->get('fastly_streamline_access.settings')->get('acl_name');;
   }
 
   protected function getLongLivedAclName() {
@@ -159,7 +159,7 @@ class OpsIfEventSubscriber implements EventSubscriberInterface {
       try {
         $this->addIpToACL();
       } catch (\Exception $exception) {
-        \Drupal::logger('ops_if')->error($exception->getMessage());
+        \Drupal::logger('fastly_streamline_access')->error($exception->getMessage());
       }
     }
   }

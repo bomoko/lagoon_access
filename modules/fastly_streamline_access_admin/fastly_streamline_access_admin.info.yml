@@ -1,0 +1,11 @@
+name: Fastly Streamline Access Admin
+description: |
+    This module provides some cli tools for managing FSA ACL entries
+package: Custom
+core_version_requirement: ^8 || ^9
+
+dependencies:
+  - fastly_streamline_access:fastly_streamline_access
+
+type: module
+

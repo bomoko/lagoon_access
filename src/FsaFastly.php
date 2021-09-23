@@ -1,18 +1,18 @@
 <?php
 
-namespace Drupal\ops_if;
+namespace Drupal\fastly_streamline_access;
 
 /**
- * Class OpsIfFastly
+ * Class FsaFastly
  *
  */
-class OpsIfFastly {
+class FsaFastly {
 
   const VCL_PRIORITY = 300;
 
   protected $serviceId;
 
-  protected $opsFsCommsInstance;
+  protected $FsaCommsInstance;
 
   protected $serviceVersions = NULL; //this will only be populated if needed
 
@@ -24,28 +24,28 @@ class OpsIfFastly {
    * @param $fastlyKey
    * @param $serviceId
    *
-   * New ups an OpsIfFastly interface
+   * New ups an FsaFastly interface
    *
-   * @return \Drupal\ops_if\OpsIfFastly
+   * @return \Drupal\fastly_streamline_access\FsaFastly
    */
-  public static function GetOpsIfFastlyInstance(
+  public static function GetFsaFastlyInstance(
     $fastlyKey,
     $serviceId
   ) {
-    return new OpsIfFastly(new OpsFsComms($fastlyKey), $serviceId);
+    return new FsaFastly(new FsaComms($fastlyKey), $serviceId);
   }
 
   /**
-   * OpsIfFastly constructor.
+   * FsaFastly constructor.
    *
-   * @param \Drupal\ops_if\OpsFsComms $opsFsCommsInstance
+   * @param \Drupal\fastly_streamline_access\FsaComms $fsaCommsInstance
    * @param $serviceId
    */
   protected function __construct(
-    OpsFsComms $opsFsCommsInstance,
+    FsaComms $fsaCommsInstance,
     $serviceId
   ) {
-    $this->opsFsCommsInstance = $opsFsCommsInstance;
+    $this->fsaCommsInstance = $fsaCommsInstance;
     $this->serviceId = $serviceId;
   }
 
@@ -57,7 +57,7 @@ class OpsIfFastly {
       "/service/%s/version",
       $this->serviceId
     );
-    $serviceList = $this->opsFsCommsInstance->doGet($endpoint);
+    $serviceList = $this->fsaCommsInstance->doGet($endpoint);
 
     ksort($serviceList);
     $this->serviceVersions = $serviceList;
@@ -65,10 +65,10 @@ class OpsIfFastly {
   }
 
   /**
-   * @return \Drupal\ops_if\OpsFsComms
+   * @return \Drupal\fastly_streamline_access\FsaComms
    */
   public function getOpsCommInstance() {
-    return $this->opsFsCommsInstance;
+    return $this->fsaCommsInstance;
   }
 
   /**
@@ -107,7 +107,7 @@ class OpsIfFastly {
       $versionToActive
     );
 
-    return $this->opsFsCommsInstance->doPut($endpoint);
+    return $this->fsaCommsInstance->doPut($endpoint);
   }
 
   /**
@@ -163,7 +163,7 @@ class OpsIfFastly {
       "name" => $aclName,
     ];
 
-    return $this->opsFsCommsInstance->doPost($endpoint, $content);
+    return $this->fsaCommsInstance->doPost($endpoint, $content);
   }
 
 
@@ -180,7 +180,7 @@ class OpsIfFastly {
       $aclName
     );
 
-    return $this->opsFsCommsInstance->doDelete($endpoint);
+    return $this->fsaCommsInstance->doDelete($endpoint);
   }
 
 
@@ -221,7 +221,7 @@ class OpsIfFastly {
     ];
 
 
-    return $this->opsFsCommsInstance->doPost($endpoint, $content);
+    return $this->fsaCommsInstance->doPost($endpoint, $content);
   }
 
   /**
@@ -237,7 +237,7 @@ class OpsIfFastly {
       $vclName
     );
 
-    return $this->opsFsCommsInstance->doDelete($endpoint);
+    return $this->fsaCommsInstance->doDelete($endpoint);
   }
 
   /**
@@ -255,7 +255,7 @@ class OpsIfFastly {
       )->number
     );
 
-    return $this->opsFsCommsInstance->doGet($endpoint);
+    return $this->fsaCommsInstance->doGet($endpoint);
   }
 
   /**
@@ -272,7 +272,7 @@ class OpsIfFastly {
       $version ? $version : $this->getLatestServiceVersion()->number
     );
 
-    return $this->opsFsCommsInstance->doGet($endpoint);
+    return $this->fsaCommsInstance->doGet($endpoint);
   }
 
 
@@ -291,7 +291,7 @@ class OpsIfFastly {
 
     $payload = ["ip" => $ipaddress, "comment" => json_encode($entryData)];
 
-    return $this->opsFsCommsInstance->doJsonPost($endpoint, $payload);
+    return $this->fsaCommsInstance->doJsonPost($endpoint, $payload);
   }
 
   /**
@@ -308,7 +308,7 @@ class OpsIfFastly {
       $aclEntryId
     );
 
-    return $this->opsFsCommsInstance->doDelete($endpoint);
+    return $this->fsaCommsInstance->doDelete($endpoint);
   }
 
 
@@ -336,7 +336,7 @@ class OpsIfFastly {
     $page = 1;
 
     while (!$done) {
-      $aclRet = $this->opsFsCommsInstance->doGet($endpointGeg($page++));
+      $aclRet = $this->fsaCommsInstance->doGet($endpointGeg($page++));
 
       if (count($aclRet) == 0) {
         $done = TRUE;

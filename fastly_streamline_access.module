@@ -1,15 +1,15 @@
 <?php
 
-function ops_if_requirements($phase) {
+function fastly_streamline_access_requirements($phase) {
   $requirements = [];
   if ($phase === 'runtime') {
-    $config = \Drupal::config('ops_if.settings');
+    $config = \Drupal::config('fastly_streamline_access.settings');
     if (empty($config->get('acl_name')) || empty($config->get('passphrase'))) {
 
-      $url = \Drupal\Core\Url::fromRoute('ops_if.config_form');
+      $url = \Drupal\Core\Url::fromRoute('fastly_streamline_access.config_form');
       $link = \Drupal\Core\Link::fromTextAndUrl("OPS IF admin page", $url);
 
-      $requirements['ops_if'] = [
+      $requirements['fastly_streamline_access'] = [
         'title' => t('OPS IF'),
         'value' => t('Setup Required'),
         'severity' => REQUIREMENT_ERROR,
