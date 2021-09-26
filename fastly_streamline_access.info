@@ -1,0 +1,5 @@
+name = Fastly Streamline Access
+description = Drupal 7 implementation of FSA.
+core = 7.x
+package = FSA
+configure = admin/config/fastly_streamline_access/admin

@@ -1,0 +1,14 @@
+<?php
+
+
+/**
+* Implements hook_permission()
+*/
+function fastly_streamline_access_permission() {
+    return [
+      'access protected lagoon routes' => array(
+        'title' => t('Access protected Lagoon routes'),
+        'description' => t('Allows access to all routes protected by Lagoon/Fastly via IP')
+      )
+    ];
+}
