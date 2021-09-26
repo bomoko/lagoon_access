@@ -66,9 +66,8 @@ class FsaAdminCommands extends DrushCommands {
   }
 
   /**
-   * TODO: command to remove IPs from ACLs
-   * TODO: command to search ACL for particular entries
    * TODO: command to add to long lived ACL
+   * TODO: command to generate fastly key from passphrase
    */
 
   /**
@@ -83,14 +82,14 @@ class FsaAdminCommands extends DrushCommands {
    * @usage fastly_streamline_access:remove "W.X.Y.Z"
    *   Will remove any ip W.X.Y.Z from Fastly
    */
-  public function removeIp($ipAddress, $aclName = null, $options = []) {
+  public function removeIp($ipAddress, $aclName = NULL, $options = []) {
     $fastlyInterface = $this->getFastlyInterface();
 
     $aclMatches = [];
     foreach ($fastlyInterface->getAclList() as $acl) {
       foreach ($fastlyInterface->getAclMembers($acl->id) as $ip) {
-        if($ip->ip == $ipAddress) {
-          try{
+        if ($ip->ip == $ipAddress) {
+          try {
             $fastlyInterface->deleteAclMember($acl->id, $ip->id);
           } catch (\Exception $ex) {
             $this->logger()->error($ex->getMessage());
@@ -103,7 +102,10 @@ class FsaAdminCommands extends DrushCommands {
 
     $this->io()
       ->title(\Drupal::translation()->translate('IP ACL Removal'));
-    $this->io()->table(["REMOVED FROM THE FOLLOWING ACCESS CONTROL LISTS"], [$aclMatches]);
+    $this->io()->table(
+      ["REMOVED FROM THE FOLLOWING ACCESS CONTROL LISTS"],
+      [$aclMatches]
+    );
   }
 
   /**
@@ -143,12 +145,11 @@ class FsaAdminCommands extends DrushCommands {
         }
       }
     }
-    $this->io()->title(\Drupal::translation()->translate("IPs containing '{$searchTerms}'"));
+    $this->io()->title(
+      \Drupal::translation()->translate("IPs containing '{$searchTerms}'")
+    );
     $this->io()->table($this->formattedOutputItemHeaders, $retIps);
   }
-
-
-
 
   /**
    * @return \Drupal\fastly_streamline_access\FsaFastly

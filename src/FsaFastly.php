@@ -307,12 +307,8 @@ class FsaFastly {
       $aclId,
       $aclEntryId
     );
-
     return $this->fsaCommsInstance->doDelete($endpoint);
   }
-
-
-
 
 
   /**
