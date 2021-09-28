@@ -12,3 +12,113 @@ function fastly_streamline_access_permission() {
       )
     ];
 }
+
+/**
+ * Implements hook_requirements()
+ */
+function fastly_streamline_access_requirements($phase) {
+  if($phase == "runtime") {
+  }
+}
+
+/**
+ * Implements hook_menu()
+ */
+function fastly_streamline_access_menu() {
+  $items = array();
+
+  $items['admin/config/fastly_streamline_access'] = array(
+    'title' => 'Fastly Streamline Access Administration',
+    'description' => 'Configuration for FSA',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('fastly_streamline_access_setting_form'),
+    'access arguments' => array('access administration pages'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  return $items;
+
+}
+
+
+/**
+ *
+ */
+function fastly_streamline_access_setting_form($form, &$form_state) {
+  $form['fsa_acl_name'] = [
+    '#type' => 'textfield',
+    '#title' => t('Standard Access Control List (ACL) name:'),
+    '#default_value' => variable_get('fsa_acl_name'),
+    '#description' => t(
+      'This will determine the ACL names used on Fastly'
+    ),
+  ];
+
+  // Page title field.
+  $form['fsa_acl_long_name'] = [
+    '#type' => 'textfield',
+    '#title' => t('Long lived Access Control List (ACL) name:'),
+    '#default_value' => variable_get('fsa_acl_long_name'),
+    '#description' => t(
+      'This will determine the ACL names used on Fastly'
+    ),
+  ];
+
+  $form['passphrase_fieldset'] = [
+    '#type' => 'fieldset',
+    '#title' => t('Passphrase'),
+    '#collapsible' => TRUE,
+    '#collapsed' => !empty(variable_get('fsa_passphrase')),
+  ];
+
+  if (!empty(variable_get('fsa_passphrase'))) {
+    $form['passphrase_fieldset']['fsa_override_passphrase'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Override passphrase:'),
+      '#default_value' => empty(variable_get('fsa_passphrase')),
+      '#description' => t(
+        'The passphrase is currently set - check here to override it'
+      ),
+    ];
+  }
+
+  // Page title field.
+  $form['passphrase_fieldset']['fsa_passphrase'] = [
+    '#type' => 'password',
+    '#title' => t('Api Pass phrase:'),
+    '#default_value' => variable_get('fsa_passphrase'),
+    '#description' => t(
+      'This is the pass phrase used to decrypt the fastly API key'
+    ),
+  ];
+
+  $form['submit_button'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+
+  return $form;
+
+}
+
+
+function fastly_streamline_access_setting_validate($form, &$form_state) {
+
+}
+
+function fastly_streamline_access_setting_form_submit($form, &$form_state) {
+  //let's save things
+
+  var_dump($form_state);
+  variable_set("fsa_acl_name", $form_state['values']['fsa_acl_name']);
+  variable_set("fsa_passphrase", $form_state['values']['fsa_acl_long_name']);
+
+  if($form_state['values']['fsa_override_passphrase'] == 1) {
+    variable_set("fsa_passphrase", $form_state['values']['fsa_passphrase']);
+    drupal_set_message("updated passphrase to " . variable_get('fsa_passphrase'));
+  }
+
+
+
+  drupal_set_message("Saved configuration");
+}
