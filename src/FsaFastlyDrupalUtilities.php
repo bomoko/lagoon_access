@@ -2,6 +2,13 @@
 
 namespace Drupal\fastly_streamline_access;
 
+/**
+ * Convenience wrapper for some general Fastly functionality
+ *
+ * Class FsaFastlyDrupalUtilities
+ *
+ * @package Drupal\fastly_streamline_access
+ */
 class FsaFastlyDrupalUtilities {
 
   /**
@@ -22,7 +29,7 @@ class FsaFastlyDrupalUtilities {
     if(empty($opsPassphrase) || empty($ifKeyEncrypted)) {
       throw new \Exception("FSA_KEY or Module passphrase not set");
     }
-    return openssl_decrypt($ifKeyEncrypted, 'aes-256-ctr' , $opsPassphrase);
+    return openssl_decrypt($ifKeyEncrypted, 'aes-256-ctr' , $opsPassphrase, 0);
   }
 
 

@@ -1,5 +1,9 @@
 <?php
 
+
+/**
+ * Implementes hook_requirements()
+ */
 function fastly_streamline_access_requirements($phase) {
   $requirements = [];
   if ($phase === 'runtime') {

@@ -183,6 +183,21 @@ class FsaFastly {
     return $this->fsaCommsInstance->doDelete($endpoint);
   }
 
+  /**
+   * @param string $aclName
+   * returns acl details matching name - FALSE otherwise
+   *
+   * @return mixed|null
+   */
+  public function getAclByName(string $aclName) {
+    $aclList = $this->getAclList();
+    foreach ($aclList as $acl) {
+      if ($acl->name == $aclName) {
+        return $acl;
+      }
+    }
+    return FALSE;
+  }
 
   /**
    * @param $vclName
@@ -291,7 +306,13 @@ class FsaFastly {
 
     $payload = ["ip" => $ipaddress, "comment" => json_encode($entryData)];
 
-    return $this->fsaCommsInstance->doJsonPost($endpoint, $payload);
+    $ret = $this->fsaCommsInstance->doJsonPost($endpoint, $payload);
+    //if this returns a bad response, we signal via exception
+    if(empty($ret->id) && isset($ret->msg)) {
+      throw new \Exception("Could not add ip: " . $ret->msg . " - " . $ret->detail);
+    }
+
+    return $ret;
   }
 
   /**

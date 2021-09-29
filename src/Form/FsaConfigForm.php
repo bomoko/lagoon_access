@@ -96,7 +96,9 @@ class FsaConfigForm extends ConfigFormBase {
     return parent::submitForm($form, $form_state);
   }
 
-
+  /**
+   * {@inheritDoc}
+   */
   protected function getEditableConfigNames() {
     return ['fastly_streamline_access.settings'];
   }

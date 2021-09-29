@@ -142,7 +142,6 @@ class FsaComms {
     $response = curl_exec($curl);
     curl_close($curl);
 
-
     $responseDecoded = json_decode($response);
     if (json_last_error()) {
       throw new \Exception(

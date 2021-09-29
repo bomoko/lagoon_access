@@ -57,7 +57,7 @@ class FsaEventSubscriber implements EventSubscriberInterface {
    * @return array
    *   The event names to listen for, and the methods that should be executed.
    */
-  public static function getSubscribedEvents() {
+  public static function getSubscribedEvents(): array {
     return [
       KernelEvents::RESPONSE => 'pageResponse',
     ];
@@ -68,7 +68,7 @@ class FsaEventSubscriber implements EventSubscriberInterface {
    *
    * @return string
    */
-  protected function getApiKey() {
+  protected function getApiKey(): string {
     if (is_null($this->fastlyFsaKey)) {
       $this->fastlyFsaKey = FsaFastlyDrupalUtilities::getApiKey();
     }
@@ -76,7 +76,9 @@ class FsaEventSubscriber implements EventSubscriberInterface {
   }
 
   /**
-   * Here we grab the service ID
+   * Gets the Fastly Service ID
+   *
+   * @return array|false|string
    */
   protected function getFastlyServiceId() {
     if (is_null($this->fastlyServiceId)) {
@@ -85,6 +87,11 @@ class FsaEventSubscriber implements EventSubscriberInterface {
     return $this->fastlyServiceId;
   }
 
+  /**
+   * Returns an instance of FsaFastly for interfacing with API
+   *
+   * @return \Drupal\fastly_streamline_access\FsaFastly
+   */
   protected function getFastlyInterface() {
     if (is_null($this->fastlyInterface)) {
       $this->fastlyInterface = FsaFastly::GetFsaFastlyInstance(
@@ -95,14 +102,32 @@ class FsaEventSubscriber implements EventSubscriberInterface {
     return $this->fastlyInterface;
   }
 
+  /**
+   * Returns the name of the standard length ACL we're targeting
+   *
+   * @return array|mixed|null
+   */
   protected function getStandardAclName() {
     return $this->config->get('fastly_streamline_access.settings')->get('acl_name');;
   }
 
+  /**
+   * Returns the name of the long length ACL we're targeting
+   *
+   * @return array|mixed|null
+   */
   protected function getLongLivedAclName() {
     return $this->getStandardAclName() . '_longlived';
   }
 
+  /**
+   * Convenience function to resolve ACL names to IDs
+   *
+   * @param $name
+   *
+   * @return mixed
+   * @throws \Exception
+   */
   protected function getAclIdForName($name) {
     $aclList = $this->getAclList();
     foreach ($aclList as $item) {
@@ -110,8 +135,14 @@ class FsaEventSubscriber implements EventSubscriberInterface {
         return $item->id;
       }
     }
+    throw new \Exception("Could not find ACL {$name}");
   }
 
+  /**
+   * Returns a list of ACLs for the current service
+   *
+   * @return array
+   */
   protected function getAclList() {
     $this->getFastlyInterface();
     if(!isset($this->cache['aclList'])) {
@@ -120,8 +151,15 @@ class FsaEventSubscriber implements EventSubscriberInterface {
     return $this->cache['aclList'];
   }
 
+  /**
+   * Adds current user's IP to the ACL list
+   *
+   * @throws \Exception
+   */
   protected function addIpToACL() {
     $request = \Drupal::request();
+
+    //TODO: this needs to be more specific - check notes from Sean
     $currentIp = $request->getClientIp();
 
     $aclId = $this->getAclIdForName($this->getStandardAclName());

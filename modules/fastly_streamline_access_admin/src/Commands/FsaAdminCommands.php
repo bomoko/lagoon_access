@@ -4,17 +4,18 @@ namespace Drupal\fastly_streamline_access_admin\Commands;
 
 use Drupal\fastly_streamline_access\FsaFastly;
 use Drupal\fastly_streamline_access\FsaFastlyDrupalUtilities;
-use Drupal\fastly_streamline_access\FsaFastlyServiceDrafter;
 use Drush\Commands\DrushCommands;
 
 /**
- * A Drush commandfile.
+ * Fastly Admin commands
  *
- * In addition to this file, you need a drush.services.yml
- * in root of your module, and a composer.json file that provides the name
- * of the services file to use.
+ * This set of commands provides the primary CLI administration system for FSA
  */
 class FsaAdminCommands extends DrushCommands {
+
+  const AGE_OFF_STANDARD_NO_DAYS = 90;
+
+  const AGE_OFF_EXTENDED_NO_DAYS = 270;
 
   protected $formattedOutputItemHeaders = [
     'ACL',
@@ -27,32 +28,34 @@ class FsaAdminCommands extends DrushCommands {
   ];
 
   /**
-   * Ages off IPs older than given number of days
-   *
-   * @param string $days
-   *   Argument provided to the drush command.
+   * Ages off IPs
    *
    * @command fastly_streamline_access:clear
-   * @aliases oifh
-   * @usage fastly_streamline_access:clear 90
-   *   Will remove any ips from Fastly older than 90 days
+   * @aliases fsac
+   * @usage fastly_streamline_access:clear
+   *   Will remove any ips from Fastly older than 90 days and 6 months on long lived IPs
    */
-  public function cleanAcls($days = 90, $options = []) {
+  public function cleanAcls($options = []) {
     $fastlyInterface = $this->getFastlyInterface();
 
-    //Let's load all ACLs in the service
-
-    $acls = $fastlyInterface->getAclList();
+    $acls = $this->getFsaAcls();
     $now = new \DateTime();
-    $now->add(new \DateInterval('P4M'));
 
     foreach ($acls as $acl) {
       $ips = $fastlyInterface->getAclMembers($acl->id);
+      $days = self::AGE_OFF_STANDARD_NO_DAYS;
+
+      if ($acl->name == \Drupal::config('fastly_streamline_access.settings')
+          ->get('acl_long_name')) {
+        $days = self::AGE_OFF_EXTENDED_NO_DAYS;
+      }
+
       foreach ($ips as $ip) {
         $createdDate = \DateTime::createFromFormat(
           "Y-m-d\TH:i:s\Z",
           $ip->created_at
         );
+
         $diff = $createdDate->diff($now);
         if ($diff->days > $days) {
           $fastlyInterface->deleteAclMember($acl->id, $ip->id);
@@ -66,15 +69,44 @@ class FsaAdminCommands extends DrushCommands {
   }
 
   /**
-   * TODO: command to add to long lived ACL
-   * TODO: command to generate fastly key from passphrase
-   */
-
-  /**
-   * Search for IP addresses in all ACLs
+   * Add Long Lived IP address
    *
    * @param string $ipAddress
-   *   Argument provided to the drush command.
+   *   IP Address to add to the long lived ACL
+   *
+   * @command fastly_streamline_access:addLongLived
+   * @aliases fsaal
+   * @usage fastly_streamline_access:addLongLived "ipaddress"
+   *   To add a subnet mask, use a slash ("192.0.2.0/24"). To exclude, use an exclamation mark ("!192.0.2.0").
+   */
+  public function addLongLivedIp($ipAddress, $options = []) {
+    $fastlyInterface = $this->getFastlyInterface();
+
+    $acl = $fastlyInterface->getAclByName(
+      \Drupal::config('fastly_streamline_access.settings')->get('acl_long_name')
+    );
+
+    if (!$acl) {
+      $this->io()->error("Cannot find ACL - check settings and try again");
+      return;
+    }
+
+    try {
+      $ret = $fastlyInterface->addAclMember($acl->id, $ipAddress);
+      if (isset($ret->created_at)) {
+        $this->io()->writeln("Successfully added ip address");
+      }
+    } catch (\Exception $ex) {
+      $this->io()->error($ex->getMessage());
+      return;
+    }
+  }
+
+  /**
+   * Remove IP from all ACLs
+   *
+   * @param string $ipAddress
+   *   Ip Address to remove from ACLs
    *
    *
    * @command fastly_streamline_access:remove
@@ -82,11 +114,13 @@ class FsaAdminCommands extends DrushCommands {
    * @usage fastly_streamline_access:remove "W.X.Y.Z"
    *   Will remove any ip W.X.Y.Z from Fastly
    */
-  public function removeIp($ipAddress, $aclName = NULL, $options = []) {
+  public function removeIp($ipAddress, $options = []) {
     $fastlyInterface = $this->getFastlyInterface();
 
     $aclMatches = [];
-    foreach ($fastlyInterface->getAclList() as $acl) {
+
+    foreach ($this->getFsaAcls() as $acl) {
+
       foreach ($fastlyInterface->getAclMembers($acl->id) as $ip) {
         if ($ip->ip == $ipAddress) {
           try {
@@ -112,7 +146,7 @@ class FsaAdminCommands extends DrushCommands {
    * Search for IP addresses in all ACLs
    *
    * @param string $searchTerms
-   *   Argument provided to the drush command.
+   *   Target search text
    *
    * @command fastly_streamline_access:search
    * @aliases fsas
@@ -124,10 +158,11 @@ class FsaAdminCommands extends DrushCommands {
 
     //run through all ACLs and IPs - search for matching terms
 
-    $acls = $fastlyInterface->getAclList();
     $now = new \DateTime();
     $now->add(new \DateInterval('P4M'));
     $retIps = [];
+    $acls = $this->getFsaAcls($fastlyInterface);
+
     foreach ($acls as $acl) {
       $ips = $fastlyInterface->getAclMembers($acl->id);
       foreach ($ips as $ip) {
@@ -152,6 +187,24 @@ class FsaAdminCommands extends DrushCommands {
   }
 
   /**
+   * Generate an encrypted key using a given passphrase
+   *
+   * @param string $key
+   *   The key to encrypt
+   *
+   * @param string $passphrase
+   *   The passphrase used to encrypt
+   *
+   * @command fastly_streamline_access:encrypt
+   * @aliases fsae
+   * @usage fastly_streamline_access:encrypt "key" "passphrase"
+   *
+   */
+  public function generateEncryptedFSAKey($key, $passphrase, $options = []) {
+    $this->io()->writeln(openssl_encrypt($key, 'aes-256-ctr', $passphrase));
+  }
+
+  /**
    * @return \Drupal\fastly_streamline_access\FsaFastly
    * @throws \Exception
    */
@@ -161,6 +214,36 @@ class FsaAdminCommands extends DrushCommands {
       FsaFastlyDrupalUtilities::getServiceId()
     );
     return $fastlyInterface;
+  }
+
+  /**
+   * Returns an array of the long and short ACL names registered with the parent module
+   *
+   * @return array
+   */
+  protected function getRegisteredACLNames() {
+    $config = \Drupal::config('fastly_streamline_access.settings');
+    return [
+      $config->get('acl_long_name'),
+      $config->get('acl_name')
+    ];
+  }
+
+  /**
+   * @param \Drupal\fastly_streamline_access\FsaFastly $fastlyInterface
+   *
+   * @return mixed
+   */
+  protected function getFsaAcls(FsaFastly $fastlyInterface) {
+    $acls = $fastlyInterface->getAclList();
+    $ourACLS = $this->getRegisteredACLNames();
+    $acls = array_filter(
+      $acls,
+      function ($e) use ($ourACLS) {
+        return in_array($e->name, $ourACLS);
+      }
+    );
+    return $acls;
   }
 
 }
