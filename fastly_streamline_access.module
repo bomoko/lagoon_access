@@ -11,7 +11,7 @@ function fastly_streamline_access_requirements($phase) {
     if (empty($config->get('acl_name')) || empty($config->get('passphrase'))) {
 
       $url = \Drupal\Core\Url::fromRoute('fastly_streamline_access.config_form');
-      $link = \Drupal\Core\Link::fromTextAndUrl("OPS IF admin page", $url);
+      $link = \Drupal\Core\Link::fromTextAndUrl("FSA admin page", $url);
 
       $requirements['fastly_streamline_access'] = [
         'title' => t('OPS IF'),

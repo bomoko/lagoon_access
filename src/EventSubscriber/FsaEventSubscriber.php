@@ -160,7 +160,7 @@ class FsaEventSubscriber implements EventSubscriberInterface {
     $request = \Drupal::request();
 
     //TODO: this needs to be more specific - check notes from Sean
-    $currentIp = $request->getClientIp();
+    $currentIp = $this->getClientIp();
 
     $aclId = $this->getAclIdForName($this->getStandardAclName());
 
@@ -179,6 +179,18 @@ class FsaEventSubscriber implements EventSubscriberInterface {
 
     // We never add to the Long Lived ACL
     $this->fastlyInterface->addAclMember($aclId, $currentIp, $extraData);
+  }
+
+  /**
+   * Cascading checks for legitimate client IP address for Fastly ACL
+   *
+   * @return mixed|string|null
+   */
+  protected function getClientIp() {
+    if(!empty($_SERVER['TRUE_CLIENT_IP'])) {
+      return $_SERVER['TRUE_CLIENT_IP'];
+    }
+    return \Drupal::request()->getClientIp();
   }
 
   /**
