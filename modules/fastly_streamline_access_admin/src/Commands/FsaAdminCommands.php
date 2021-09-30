@@ -252,6 +252,5 @@ class FsaAdminCommands extends DrushCommands {
     );
     return $acls;
   }
-
 }
 

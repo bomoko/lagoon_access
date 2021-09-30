@@ -1,0 +1,8 @@
+{
+    "name": "bomoko/fsa",
+    "type": "drupal-module",
+    "keywords": ["Drupal"],
+    "license": "GPL-2.0-or-later",
+    "minimum-stability": "dev",
+    "require": { }
+}
