@@ -27,13 +27,6 @@ class FsaAdminCommands extends DrushCommands {
     'Comment',
   ];
 
-  public function __construct() {
-    parent::__construct();
-    if(empty(FsaFastlyDrupalUtilities::getApiKey()) || empty(FsaFastlyDrupalUtilities::getServiceId())) {
-      throw new \Exception("FSA has not been configured.");
-    }
-  }
-
   /**
    * Ages off IPs
    *
