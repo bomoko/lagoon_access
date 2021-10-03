@@ -119,7 +119,7 @@ class FsaAdminCommands extends DrushCommands {
 
     $aclMatches = [];
 
-    foreach ($this->getFsaAcls() as $acl) {
+    foreach ($this->getFsaAcls($fastlyInterface) as $acl) {
 
       foreach ($fastlyInterface->getAclMembers($acl->id) as $ip) {
         if ($ip->ip == $ipAddress) {
