@@ -69,19 +69,44 @@ function fastly_streamline_access_register_current_ip() {
       }
       $service_id = FsaFastlyDrupalUtilities::getServiceId();
       $service_key = FsaFastlyDrupalUtilities::getApiKey();
+      $fsa_acl_name = variable_get('fsa_acl_name');
+
+      if (empty($fsa_acl_name)) {
+        throw new \Exception("FSA incorrectly configured - missing acl name");
+      }
+
       $fsa_instance = FsaFastly::GetFsaFastlyInstance(
         $service_key,
         $service_id
       );
-      $acl = $fsa_instance->getAclByName(variable_get('fsa_acl_name'));
-      $fsa_instance->addAclMember(
-        $acl->id,
-        $ip_address,
-        [
-          'user' => $user->name,
-          'site' => variable_get('site_name')
-        ]
-      );
+      $acl = $fsa_instance->getAclByName($fsa_acl_name);
+      if (empty($acl->id)) {
+        throw new \Exception("ACL '{$fsa_acl_name}' not found on Fastly");
+      }
+
+      $aclMembers = $fsa_instance->getAclMembers($acl->id);
+      $entry_exists = FALSE;
+
+      foreach ($aclMembers as $aclMember) {
+        if($aclMember->ip == $ip_address) {
+          $entry_exists = TRUE;
+          break;
+        }
+      }
+
+      if(!$entry_exists) {
+        $fsa_instance->addAclMember(
+          $acl->id,
+          $ip_address,
+          [
+            'user' => $user->name,
+            'site' => variable_get('site_name')
+          ]
+        );
+        watchdog("fastly_streamline_access", "Added '%ip' to ACL '%acl'", array("%ip" => $ip_address, "%acl" => $fsa_acl_name), WATCHDOG_INFO);
+      } else {
+        watchdog("fastly_streamline_access", "IP %ip exists", array("%ip" => $ip_address));
+      }
     } catch (\Exception $ex) {
       watchdog(
         "fastly_streamline_access",

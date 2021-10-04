@@ -90,8 +90,6 @@ class FsaFastly {
     return FALSE;
   }
 
-
-
   /**
    * @param null $version
    *
@@ -108,7 +106,6 @@ class FsaFastly {
 
     return $this->fsaCommsInstance->doGet($endpoint);
   }
-
 
   /**
    * @param $ipaddress
@@ -132,6 +129,42 @@ class FsaFastly {
     }
 
     return $ret;
+  }
+
+  /**
+   * @param $aclId
+   *
+   * @return array
+   */
+  public function getAclMembers($aclId) {
+    $acls = [];
+
+    $endpointGeg = function ($page = 1) use ($aclId) {
+      return sprintf(
+        "/service/%s/acl/%s/entries?page=%s",
+        $this->serviceId,
+        $aclId,
+        $page
+      );
+    };
+
+    $done = FALSE;
+    $page = 1;
+
+    while (!$done) {
+      $aclRet = $this->fsaCommsInstance->doGet($endpointGeg($page++));
+
+      if (count($aclRet) == 0) {
+        $done = TRUE;
+      }
+      else {
+        $acls = array_merge($acls, $aclRet);
+      }
+
+      $done = TRUE;
+    }
+
+    return $acls;
   }
 
 }
