@@ -12,6 +12,9 @@ class FsaFastly {
 
   protected $fsaCommsInstance;
 
+  protected $serviceVersions = NULL; //this will only be populated if needed
+
+
   /**
    * @param $fastlyKey
    * @param $serviceId
@@ -42,6 +45,36 @@ class FsaFastly {
   }
 
   /**
+   * used internally to populate the version information for this service id
+   */
+  public function getServiceVersions() {
+    $endpoint = sprintf(
+      "/service/%s/version",
+      $this->serviceId
+    );
+    $serviceList = $this->fsaCommsInstance->doGet($endpoint);
+
+    ksort($serviceList);
+    $this->serviceVersions = $serviceList;
+    return $this->serviceVersions;
+  }
+
+  /**
+   * @return \Drupal\fastly_streamline_access\FsaComms
+   */
+  public function getOpsCommInstance() {
+    return $this->fsaCommsInstance;
+  }
+
+  /**
+   * @return false|mixed
+   */
+  public function getLatestServiceVersion() {
+    $this->getServiceVersions();
+    return end($this->serviceVersions);
+  }
+
+  /**
    * @param string $aclName
    * returns acl details matching name - FALSE otherwise
    *
@@ -56,6 +89,8 @@ class FsaFastly {
     }
     return FALSE;
   }
+
+
 
   /**
    * @param null $version
@@ -92,11 +127,10 @@ class FsaFastly {
 
     $ret = $this->fsaCommsInstance->doJsonPost($endpoint, $payload);
     //if this returns a bad response, we signal via exception
-    if (empty($ret->id) && isset($ret->msg)) {
-      throw new \Exception(
-        "Could not add ip: " . $ret->msg . " - " . $ret->detail
-      );
+    if(empty($ret->id) && isset($ret->msg)) {
+      throw new \Exception("Could not add ip: " . $ret->msg . " - " . $ret->detail);
     }
+
     return $ret;
   }
 
