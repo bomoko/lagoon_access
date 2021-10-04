@@ -15,8 +15,7 @@ class FsaFastlyDrupalUtilities {
    * @return array|false|string
    */
   public static function getApiKey() {
-    $opsPassphrase = \Drupal::config('fastly_streamline_access.settings')->get('passphrase');
-
+    $opsPassphrase = variable_get("fsa_passphrase");
     $ifKeyEncrypted = getenv("FSA_KEY");
 
     if(empty($opsPassphrase) || empty($ifKeyEncrypted)) {
@@ -24,7 +23,5 @@ class FsaFastlyDrupalUtilities {
     }
     return openssl_decrypt($ifKeyEncrypted, 'aes-256-ctr' , $opsPassphrase);
   }
-
-
 
 }

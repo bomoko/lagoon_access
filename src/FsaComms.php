@@ -142,6 +142,7 @@ class FsaComms {
     $response = curl_exec($curl);
     curl_close($curl);
 
+    //TODO: more robust error checking.
 
     $responseDecoded = json_decode($response);
     if (json_last_error()) {

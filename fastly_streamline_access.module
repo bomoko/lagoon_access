@@ -1,12 +1,21 @@
 <?php
 
+require_once(__DIR__ . "/src/FsaComms.php");
+require_once(__DIR__ . "/src/FsaFastly.php");
+require_once(__DIR__ . "/src/FsaFastlyDrupalUtilities.php");
+
+use \Drupal\fastly_streamline_access\FsaFastlyDrupalUtilities;
+use \Drupal\fastly_streamline_access\FsaFastly;
+
+const FSA_ACCESS_PERMISSION = 'access protected lagoon routes';
+
 
 /**
 * Implements hook_permission()
 */
 function fastly_streamline_access_permission() {
     return [
-      'access protected lagoon routes' => array(
+      FSA_ACCESS_PERMISSION => array(
         'title' => t('Access protected Lagoon routes'),
         'description' => t('Allows access to all routes protected by Lagoon/Fastly via IP')
       )
@@ -39,6 +48,44 @@ function fastly_streamline_access_menu() {
   return $items;
 
 }
+
+function fastly_streamline_access_get_FSA_paths() {
+  return implode(PHP_EOL, array(
+    "user",
+    "user/*",
+  ));
+}
+
+function fastly_streamline_access_register_current_ip() {
+  global $user;
+  if(user_access(FSA_ACCESS_PERMISSION)) {
+    try{
+      $ip_address = ip_address();
+      if(!empty($_SERVER['TRUE_CLIENT_IP'])) {
+        $ip_address = $_SERVER['TRUE_CLIENT_IP'];
+      }
+      $service_id = FsaFastlyDrupalUtilities::getServiceId();
+      $service_key = FsaFastlyDrupalUtilities::getApiKey();
+      $fsa_instance = FsaFastly::GetFsaFastlyInstance( $service_key, $service_id);
+      $acl = $fsa_instance->getAclByName(variable_get('fsa_acl_name'));
+      $fsa_instance->addAclMember($acl->id, $ip_address, array('user' => $user->name, 'site' => variable_get('site_name')));
+    } catch (\Exception $ex) {
+      watchdog("fastly_streamline_access", "Error registering FSA ACL entry: " . $ex->getMessage(), array(), WATCHDOG_ALERT);
+    }
+  }
+}
+
+/**
+ * Implements hook_init()
+ */
+function fastly_streamline_access_init() {
+  $path = current_path();
+  if(user_is_logged_in()
+    && drupal_match_path($path, fastly_streamline_access_get_FSA_paths())) {
+    fastly_streamline_access_register_current_ip();
+  }
+}
+
 
 
 /**
@@ -109,16 +156,13 @@ function fastly_streamline_access_setting_validate($form, &$form_state) {
 function fastly_streamline_access_setting_form_submit($form, &$form_state) {
   //let's save things
 
-  var_dump($form_state);
   variable_set("fsa_acl_name", $form_state['values']['fsa_acl_name']);
-  variable_set("fsa_passphrase", $form_state['values']['fsa_acl_long_name']);
+  variable_set("fsa_acl_long_name", $form_state['values']['fsa_acl_long_name']);
 
-  if($form_state['values']['fsa_override_passphrase'] == 1) {
+
+  if(isset($form_state['values']['fsa_override_passphrase']) && $form_state['values']['fsa_override_passphrase'] == 1) {
     variable_set("fsa_passphrase", $form_state['values']['fsa_passphrase']);
-    drupal_set_message("updated passphrase to " . variable_get('fsa_passphrase'));
+    drupal_set_message("Set passphrase");
   }
-
-
-
   drupal_set_message("Saved configuration");
 }
