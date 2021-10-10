@@ -18,8 +18,8 @@ function fastly_streamline_access_permission() {
       'title' => t('Access protected Lagoon routes'),
       'description' => t(
         'Allows access to all routes protected by Lagoon/Fastly via IP'
-      )
-    ]
+      ),
+    ],
   ];
 }
 
@@ -88,24 +88,34 @@ function fastly_streamline_access_register_current_ip() {
       $entry_exists = FALSE;
 
       foreach ($aclMembers as $aclMember) {
-        if($aclMember->ip == $ip_address) {
+        if ($aclMember->ip == $ip_address) {
           $entry_exists = TRUE;
           break;
         }
       }
 
-      if(!$entry_exists) {
+      if (!$entry_exists) {
         $fsa_instance->addAclMember(
           $acl->id,
           $ip_address,
           [
             'user' => $user->name,
-            'site' => variable_get('site_name')
+            'site' => variable_get('site_name'),
           ]
         );
-        watchdog("fastly_streamline_access", "Added '%ip' to ACL '%acl'", array("%ip" => $ip_address, "%acl" => $fsa_acl_name), WATCHDOG_INFO);
-      } else {
-        watchdog("fastly_streamline_access", "IP %ip exists", array("%ip" => $ip_address));
+        watchdog(
+          "fastly_streamline_access",
+          "Added '%ip' to ACL '%acl'",
+          ["%ip" => $ip_address, "%acl" => $fsa_acl_name],
+          WATCHDOG_INFO
+        );
+      }
+      else {
+        watchdog(
+          "fastly_streamline_access",
+          "IP %ip exists",
+          ["%ip" => $ip_address]
+        );
       }
     } catch (\Exception $ex) {
       watchdog(
